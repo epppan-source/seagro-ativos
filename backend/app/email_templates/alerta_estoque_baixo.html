@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>O material <strong>{{ material_nome }}</strong> está com estoque baixo.</p>
+<p>Quantidade atual: <strong>{{ quantidade_atual }}</strong> | Mínimo: <strong>{{ quantidade_minima }}</strong></p>
+<p><a href="{{ app_url }}/materiais" style="background:#1d4e3c;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;">Ver materiais</a></p>
+{% endblock %}

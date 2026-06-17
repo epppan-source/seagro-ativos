@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>O ativo <strong>{{ ativo_codigo }}</strong> tem manutenção prevista para <strong>{{ data_prevista }}</strong>.</p>
+<p><a href="{{ app_url }}/manutencoes" style="background:#1d4e3c;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;">Ver manutenções</a></p>
+{% endblock %}

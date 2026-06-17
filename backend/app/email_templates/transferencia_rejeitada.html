@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>Olá, <strong>{{ nome }}</strong>!</p>
+<p>Sua solicitação de transferência do ativo <strong>{{ ativo_codigo }}</strong> foi <strong>rejeitada</strong>.</p>
+<p><strong>Motivo:</strong> {{ motivo }}</p>
+{% endblock %}

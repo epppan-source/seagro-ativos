@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>Olá, <strong>{{ nome }}</strong>!</p>
+<p>Seu acesso ao {{ app_name }} foi criado. Use as credenciais abaixo para o primeiro acesso:</p>
+<p><strong>Login:</strong> {{ login }}<br><strong>Senha temporária:</strong> {{ senha_temporaria }}</p>
+<p>No primeiro acesso você será solicitado a criar uma nova senha.</p>
+<p><a href="{{ app_url }}/login" style="background:#1d4e3c;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;">Acessar o sistema</a></p>
+{% endblock %}

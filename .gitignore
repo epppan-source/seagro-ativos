@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+backend/.env
+backend/static/uploads/*
+!backend/static/uploads/.gitkeep
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+frontend/.env.local
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
