@@ -1,9 +1,17 @@
 "use client"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import api from "@/lib/api"
 
 export default function RedefinirSenhaPage() {
+  return (
+    <Suspense fallback={null}>
+      <RedefinirSenhaForm />
+    </Suspense>
+  )
+}
+
+function RedefinirSenhaForm() {
   const router = useRouter()
   const params = useSearchParams()
   const token = params.get("token") || ""
