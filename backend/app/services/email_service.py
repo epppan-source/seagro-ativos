@@ -1,5 +1,6 @@
 import smtplib
 import socket
+import httpx
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from jinja2 import Environment, FileSystemLoader
@@ -28,6 +29,36 @@ class EmailService:
         return template.render(**contexto, app_url=settings.APP_URL, app_name=settings.APP_NAME)
 
     async def _enviar(self, destinatario: str, assunto: str, html: str):
+        if settings.EMAIL_PROVIDER == "resend":
+            await self._enviar_via_resend(destinatario, assunto, html)
+        else:
+            await self._enviar_via_smtp(destinatario, assunto, html)
+
+    async def _enviar_via_resend(self, destinatario: str, assunto: str, html: str):
+        if not settings.RESEND_API_KEY:
+            print(f"[EMAIL SIMULADO] Para: {destinatario} | Assunto: {assunto}")
+            return
+
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    json={
+                        "from": settings.EMAIL_FROM,
+                        "to": [destinatario],
+                        "subject": assunto,
+                        "html": html,
+                    },
+                )
+                resp.raise_for_status()
+            print(f"[EMAIL OK] (Resend) Enviado para: {destinatario} | Assunto: {assunto}")
+        except Exception as e:
+            corpo = getattr(getattr(e, "response", None), "text", "")
+            print(f"[EMAIL ERRO] (Resend) Falha ao enviar para {destinatario}: {type(e).__name__}: {e} {corpo}")
+            raise
+
+    async def _enviar_via_smtp(self, destinatario: str, assunto: str, html: str):
         msg = MIMEMultipart("alternative")
         msg["Subject"] = assunto
         msg["From"] = settings.EMAIL_FROM
@@ -43,9 +74,9 @@ class EmailService:
                 server.starttls()
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(settings.SMTP_USER, destinatario, msg.as_string())
-            print(f"[EMAIL OK] Enviado para: {destinatario} | Assunto: {assunto}")
+            print(f"[EMAIL OK] (SMTP) Enviado para: {destinatario} | Assunto: {assunto}")
         except Exception as e:
-            print(f"[EMAIL ERRO] Falha ao enviar para {destinatario}: {type(e).__name__}: {e}")
+            print(f"[EMAIL ERRO] (SMTP) Falha ao enviar para {destinatario}: {type(e).__name__}: {e}")
             raise
 
     async def enviar_credenciais_iniciais(self, email: str, nome: str, login: str, senha_temporaria: str):
