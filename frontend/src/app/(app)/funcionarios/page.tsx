@@ -12,34 +12,52 @@ interface Funcionario {
   ativo: boolean
 }
 
+interface FormState {
+  nome_completo: string
+  cpf: string
+  cargo: string
+  telefone: string
+  email: string
+  login: string
+  role: "funcionario" | "gestor"
+}
+
+const FORM_INICIAL: FormState = {
+  nome_completo: "",
+  cpf: "",
+  cargo: "",
+  telefone: "",
+  email: "",
+  login: "",
+  role: "funcionario",
+}
+
 export default function FuncionariosPage() {
   const [lista, setLista] = useState<Funcionario[]>([])
+  const [mostrarForm, setMostrarForm] = useState(false)
+  const [form, setForm] = useState<FormState>(FORM_INICIAL)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState("")
+  const [sucesso, setSucesso] = useState("")
+
+  function carregar() {
+    api.get("/api/funcionarios").then((res) => setLista(res.data)).catch(() => {})
+  }
 
   useEffect(() => {
-    api.get("/api/funcionarios").then((res) => setLista(res.data)).catch(() => {})
+    carregar()
   }, [])
 
-  return (
-    <div>
-      <h1 className="text-xl font-bold text-gray-800 mb-6">Funcionários</h1>
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-left text-gray-600">
-            <tr><th className="p-3">Nome</th><th className="p-3">Login</th><th className="p-3">Cargo</th><th className="p-3">Função</th></tr>
-          </thead>
-          <tbody>
-            {lista.map((f) => (
-              <tr key={f.id} className="border-t hover:bg-gray-50">
-                <td className="p-3 font-medium">{f.nome_completo}</td>
-                <td className="p-3">{f.login}</td>
-                <td className="p-3">{f.cargo}</td>
-                <td className="p-3">{f.role}</td>
-              </tr>
-            ))}
-            {lista.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-gray-400">Nenhum funcionário cadastrado.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
+  function atualizarCampo(campo: keyof FormState, valor: string) {
+    setForm((f) => ({ ...f, [campo]: valor }))
+  }
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault()
+    setErro("")
+    setSucesso("")
+    setSalvando(true)
+    try {
+      await api.post("/api/funcionarios", form)
+      setSucesso(`Funcionário cadastrado. E-mail com login e senha temporária enviado para ${form.email}.`)
+    
