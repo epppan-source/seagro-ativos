@@ -25,10 +25,15 @@ class EmailService:
             print(f"[EMAIL SIMULADO] Para: {destinatario} | Assunto: {assunto}")
             return
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_USER, destinatario, msg.as_string())
+        try:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(settings.SMTP_USER, destinatario, msg.as_string())
+            print(f"[EMAIL OK] Enviado para: {destinatario} | Assunto: {assunto}")
+        except Exception as e:
+            print(f"[EMAIL ERRO] Falha ao enviar para {destinatario}: {type(e).__name__}: {e}")
+            raise
 
     async def enviar_credenciais_iniciais(self, email: str, nome: str, login: str, senha_temporaria: str):
         html = self._renderizar("credenciais_iniciais.html", {
