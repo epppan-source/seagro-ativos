@@ -1,4 +1,5 @@
 import smtplib
+import socket
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from jinja2 import Environment, FileSystemLoader
@@ -7,6 +8,18 @@ from app.config import settings
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "email_templates")
 env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
+
+# O container do Railway nao tem rota IPv6, mas smtp.gmail.com tambem
+# responde com endereco AAAA (IPv6), o que causa "Network is unreachable".
+# Forcamos a resolucao DNS a retornar somente IPv4 para evitar isso.
+_getaddrinfo_original = socket.getaddrinfo
+
+
+def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+    return _getaddrinfo_original(host, port, socket.AF_INET, type, proto, flags)
+
+
+socket.getaddrinfo = _getaddrinfo_ipv4
 
 
 class EmailService:
