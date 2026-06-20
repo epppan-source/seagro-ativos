@@ -11,7 +11,7 @@ from app.services.scheduler import iniciar_scheduler
 from app.routers import auth, funcionarios, tipos, ativos, manutencoes, materiais, transferencias, dashboard, uploads
 from app.database import get_db
 from app.models.funcionario import Funcionario
-from app.utils.security import gerar_hash_senha
+from app.utils.security import gerar_hash_senha, verificar_senha
 
 
 @asynccontextmanager
@@ -80,3 +80,18 @@ async def diag_admin(secret: str, db: AsyncSession = Depends(get_db)):
     await db.commit()
     info["senha_resetada_para"] = "Seagro@2026"
     return info
+
+
+@app.get("/api/setup/test-login")
+async def test_login(secret: str, senha: str, db: AsyncSession = Depends(get_db)):
+    if secret != "R_yH0RM5CXUe4mvKBBYsvJQLOFCgeaQ_":
+        raise HTTPException(status_code=403, detail="Secret inválido")
+    result = await db.execute(select(Funcionario).where(Funcionario.login == "pancini"))
+    usuario = result.scalar_one_or_none()
+    if not usuario:
+        return {"found": False}
+    return {
+        "senha_recebida_repr": repr(senha),
+        "senha_bate": verificar_senha(senha, usuario.senha_hash),
+        "ativo": usuario.ativo,
+    }
