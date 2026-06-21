@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { getRole } from "@/lib/auth"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -64,11 +65,13 @@ export default function AtivosPage() {
   const [ativos, setAtivos] = useState<Ativo[]>([])
   const [tipos, setTipos] = useState<Tipo[]>([])
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
+  const [role, setRole] = useState<string | null>(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState<FormState>(FORM_INICIAL)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
+  const [desativandoId, setDesativandoId] = useState<string | null>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -91,9 +94,25 @@ export default function AtivosPage() {
   }
 
   useEffect(() => {
+    setRole(getRole())
     carregarAtivos()
     carregarFuncionarios()
   }, [])
+
+  async function desativarAtivo(a: Ativo) {
+    if (!window.confirm(`Desativar ${a.codigo_interno} (${a.modelo})? Ele sai da lista de ativos e do depósito, mas o histórico de transferências e manutenções fica preservado. Da pra reativar depois pelo banco, se precisar.`)) {
+      return
+    }
+    setDesativandoId(a.id)
+    try {
+      await api.put(`/api/ativos/${a.id}`, { ativo: false })
+      carregarAtivos()
+    } catch (err: any) {
+      alert(err?.response?.data?.detail || "Erro ao desativar ativo.")
+    } finally {
+      setDesativandoId(null)
+    }
+  }
 
   useEffect(() => {
     carregarTipos(tipoCategoriaAtual())
@@ -269,6 +288,7 @@ export default function AtivosPage() {
             <tr>
               <th className="p-3">Código</th><th className="p-3">Categoria</th>
               <th className="p-3">Modelo</th><th className="p-3">Marca</th><th className="p-3">Status</th>
+              {role === "gestor" && <th className="p-3"></th>}
             </tr>
           </thead>
           <tbody>
@@ -281,11 +301,19 @@ export default function AtivosPage() {
                   <td className="p-3">{a.modelo}</td>
                   <td className="p-3">{a.marca}</td>
                   <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>{cfg.label}</span></td>
+                  {role === "gestor" && (
+                    <td className="p-3 text-right">
+                      <button disabled={desativandoId === a.id} onClick={() => desativarAtivo(a)}
+                        className="text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
+                        {desativandoId === a.id ? "Desativando..." : "Desativar"}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               )
             })}
             {ativos.length === 0 && (
-              <tr><td colSpan={5} className="p-6 text-center text-gray-400">Nenhum ativo cadastrado ainda.</td></tr>
+              <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nenhum ativo cadastrado ainda.</td></tr>
             )}
           </tbody>
         </table>
