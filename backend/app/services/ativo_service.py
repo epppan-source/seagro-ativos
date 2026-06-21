@@ -3,8 +3,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.ativo import Ativo
+from app.models.codigo import StatusCodigo
 from app.services.qrcode_service import gerar_qrcode_ativo
 from app.services.auditoria_service import registrar_auditoria
+from app.services.codigo_service import CodigoService
 
 
 class AtivoService:
@@ -16,9 +18,17 @@ class AtivoService:
         if existente.scalar_one_or_none():
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Código interno já cadastrado")
 
+        codigo_service = CodigoService(self.db)
+        codigo_pre = await codigo_service.buscar_por_codigo(dados["codigo_interno"])
+        if codigo_pre and codigo_pre.status == StatusCodigo.EM_USO:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Este código já está em uso por outro ativo")
+
         ativo = Ativo(**dados)
         self.db.add(ativo)
         await self.db.flush()
+
+        if codigo_pre:
+            await codigo_service.marcar_em_uso(codigo_pre, ativo.id)
 
         ativo.qr_code_url = gerar_qrcode_ativo(ativo.id, ativo.codigo_interno)
         await self.db.commit()

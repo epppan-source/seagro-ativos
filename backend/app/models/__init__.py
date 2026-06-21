@@ -9,3 +9,4 @@ from app.models.tipos import (
 )
 from app.models.auditoria import Auditoria
 from app.models.notificacao_log import NotificacaoLog
+from app.models.codigo import CodigoPreImpresso, StatusCodigo

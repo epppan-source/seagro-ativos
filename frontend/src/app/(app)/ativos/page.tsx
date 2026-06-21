@@ -39,6 +39,13 @@ interface Funcionario {
   nome_completo: string
 }
 
+interface Codigo {
+  id: string
+  codigo: string
+  categoria: string
+  status: string
+}
+
 interface FormState {
   categoria: string
   tipo_id: string
@@ -79,6 +86,8 @@ export default function AtivosPage() {
   const [sucesso, setSucesso] = useState("")
   const [desativandoId, setDesativandoId] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [codigosDisponiveis, setCodigosDisponiveis] = useState<Codigo[]>([])
+  const [usarCodigoManual, setUsarCodigoManual] = useState(false)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -98,6 +107,12 @@ export default function AtivosPage() {
 
   function carregarTipos(tipoCategoria: string) {
     api.get(`/api/tipos/${tipoCategoria}`).then((res) => setTipos(res.data)).catch(() => {})
+  }
+
+  function carregarCodigosDisponiveis(categoria: string) {
+    api.get("/api/codigos", { params: { categoria, status_filtro: "DISPONIVEL" } })
+      .then((res) => setCodigosDisponiveis(res.data))
+      .catch(() => setCodigosDisponiveis([]))
   }
 
   useEffect(() => {
@@ -145,6 +160,7 @@ export default function AtivosPage() {
     setMostrarForm(false)
     setEditandoId(null)
     setForm(FORM_INICIAL)
+    setUsarCodigoManual(false)
     setErro("")
     setSucesso("")
   }
@@ -152,7 +168,8 @@ export default function AtivosPage() {
   useEffect(() => {
     if (editandoId) return
     carregarTipos(tipoCategoriaAtual())
-    setForm((f) => ({ ...f, tipo_id: "" }))
+    carregarCodigosDisponiveis(form.categoria)
+    setForm((f) => ({ ...f, tipo_id: "", codigo_interno: "" }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.categoria])
 
@@ -264,9 +281,30 @@ export default function AtivosPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Codigo interno</label>
-              <input required disabled={!!editandoId} value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-600">Codigo interno</label>
+                {!editandoId && (
+                  <button type="button" onClick={() => { setUsarCodigoManual((v) => !v); atualizarCampo("codigo_interno", "") }}
+                    className="text-xs text-gray-500 underline hover:text-gray-700">
+                    {usarCodigoManual ? "usar etiqueta pré-impressa" : "digitar manualmente"}
+                  </button>
+                )}
+              </div>
+              {!editandoId && !usarCodigoManual ? (
+                <>
+                  <select required value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Selecione um código...</option>
+                    {codigosDisponiveis.map((c) => (
+                      <option key={c.id} value={c.codigo}>{c.codigo}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">{codigosDisponiveis.length} etiqueta(s) disponível(eis) nesta categoria</p>
+                </>
+              ) : (
+                <input required disabled={!!editandoId} value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
+              )}
             </div>
             {!editandoId && (
               <div className="md:col-span-2">
