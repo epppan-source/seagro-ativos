@@ -31,6 +31,13 @@ class AtivoService:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Ativo não encontrado")
         return ativo
 
+    async def buscar_por_codigo(self, codigo_interno: str) -> Ativo:
+        resultado = await self.db.execute(select(Ativo).where(Ativo.codigo_interno == codigo_interno))
+        ativo = resultado.scalar_one_or_none()
+        if not ativo:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Nenhum ativo cadastrado com este código ainda")
+        return ativo
+
     async def listar(self, categoria=None, status_filtro=None, responsavel_id=None):
         query = select(Ativo).where(Ativo.ativo == True)
         if categoria:

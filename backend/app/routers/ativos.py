@@ -15,6 +15,11 @@ async def listar(categoria: str | None = None, status_filtro: str | None = None,
     return await AtivoService(db).listar(categoria=categoria, status_filtro=status_filtro)
 
 
+@router.get("/codigo/{codigo_interno}", response_model=AtivoOut)
+async def buscar_por_codigo(codigo_interno: str, db: AsyncSession = Depends(get_db), usuario: Funcionario = Depends(get_current_user)):
+    return await AtivoService(db).buscar_por_codigo(codigo_interno)
+
+
 @router.get("/{ativo_id}", response_model=AtivoOut)
 async def buscar(ativo_id: uuid.UUID, db: AsyncSession = Depends(get_db), usuario: Funcionario = Depends(get_current_user)):
     return await AtivoService(db).buscar_por_id(ativo_id)
