@@ -9,6 +9,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   INATIVO: { label: "Inativo", color: "bg-gray-100 text-gray-600" },
 }
 
+const CATEGORIAS: { valor: string; label: string; tipoCategoria: string }[] = [
+  { valor: "EQUIPAMENTO", label: "Equipamento", tipoCategoria: "equipamento" },
+  { valor: "FERRAMENTA", label: "Ferramenta", tipoCategoria: "ferramenta" },
+  { valor: "ACESSORIO", label: "Acessório", tipoCategoria: "acessorio" },
+]
+
 interface Ativo {
   id: string
   codigo_interno: string
@@ -18,16 +24,245 @@ interface Ativo {
   status: string
 }
 
+interface Tipo {
+  id: string
+  nome: string
+}
+
+interface Funcionario {
+  id: string
+  nome_completo: string
+}
+
+interface FormState {
+  categoria: string
+  tipo_id: string
+  codigo_interno: string
+  modelo: string
+  marca: string
+  numero_serie: string
+  ano_fabricacao: string
+  valor: string
+  observacoes: string
+  responsavel_id: string
+}
+
+const FORM_INICIAL: FormState = {
+  categoria: "EQUIPAMENTO",
+  tipo_id: "",
+  codigo_interno: "",
+  modelo: "",
+  marca: "",
+  numero_serie: "",
+  ano_fabricacao: "",
+  valor: "",
+  observacoes: "",
+  responsavel_id: "",
+}
+
 export default function AtivosPage() {
   const [ativos, setAtivos] = useState<Ativo[]>([])
+  const [tipos, setTipos] = useState<Tipo[]>([])
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
+  const [mostrarForm, setMostrarForm] = useState(false)
+  const [form, setForm] = useState<FormState>(FORM_INICIAL)
+  const [salvando, setSalvando] = useState(false)
+  const [erro, setErro] = useState("")
+  const [sucesso, setSucesso] = useState("")
+
+  const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
+  const [novoTipoNome, setNovoTipoNome] = useState("")
+  const [salvandoTipo, setSalvandoTipo] = useState(false)
+
+  function carregarAtivos() {
+    api.get("/api/ativos").then((res) => setAtivos(res.data)).catch(() => {})
+  }
+
+  function carregarFuncionarios() {
+    api.get("/api/funcionarios").then((res) => setFuncionarios(res.data)).catch(() => {})
+  }
+
+  function tipoCategoriaAtual() {
+    return CATEGORIAS.find((c) => c.valor === form.categoria)?.tipoCategoria || "equipamento"
+  }
+
+  function carregarTipos(tipoCategoria: string) {
+    api.get(`/api/tipos/${tipoCategoria}`).then((res) => setTipos(res.data)).catch(() => {})
+  }
 
   useEffect(() => {
-    api.get("/api/ativos").then((res) => setAtivos(res.data)).catch(() => {})
+    carregarAtivos()
+    carregarFuncionarios()
   }, [])
+
+  useEffect(() => {
+    carregarTipos(tipoCategoriaAtual())
+    setForm((f) => ({ ...f, tipo_id: "" }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.categoria])
+
+  function atualizarCampo(campo: keyof FormState, valor: string) {
+    setForm((f) => ({ ...f, [campo]: valor }))
+  }
+
+  async function criarTipo() {
+    if (!novoTipoNome.trim()) return
+    setSalvandoTipo(true)
+    try {
+      const res = await api.post(`/api/tipos/${tipoCategoriaAtual()}`, { nome: novoTipoNome.trim() })
+      setNovoTipoNome("")
+      setMostrarNovoTipo(false)
+      await carregarTipos(tipoCategoriaAtual())
+      setForm((f) => ({ ...f, tipo_id: res.data.id }))
+    } catch (err: any) {
+      setErro(err?.response?.data?.detail || "Erro ao criar tipo.")
+    } finally {
+      setSalvandoTipo(false)
+    }
+  }
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault()
+    setErro("")
+    setSucesso("")
+    if (!form.tipo_id) {
+      setErro("Selecione ou cadastre um tipo.")
+      return
+    }
+    setSalvando(true)
+    try {
+      await api.post("/api/ativos", {
+        categoria: form.categoria,
+        tipo_id: form.tipo_id,
+        codigo_interno: form.codigo_interno,
+        modelo: form.modelo,
+        marca: form.marca,
+        numero_serie: form.numero_serie || null,
+        ano_fabricacao: form.ano_fabricacao ? Number(form.ano_fabricacao) : null,
+        valor: form.valor || null,
+        observacoes: form.observacoes || null,
+        responsavel_id: form.responsavel_id || null,
+      })
+      setSucesso("Ativo cadastrado.")
+      setForm(FORM_INICIAL)
+      setMostrarForm(false)
+      carregarAtivos()
+    } catch (err: any) {
+      setErro(err?.response?.data?.detail || "Erro ao cadastrar ativo.")
+    } finally {
+      setSalvando(false)
+    }
+  }
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-800 mb-6">Ativos</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-bold text-gray-800">Ativos</h1>
+        <button
+          onClick={() => { setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
+          className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
+        >
+          {mostrarForm ? "Cancelar" : "+ Novo Ativo"}
+        </button>
+      </div>
+
+      {sucesso && (
+        <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4">{sucesso}</div>
+      )}
+
+      {mostrarForm && (
+        <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
+          {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
+              <select value={form.categoria} onChange={(e) => atualizarCampo("categoria", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                {CATEGORIAS.map((c) => (
+                  <option key={c.valor} value={c.valor}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Codigo interno</label>
+              <input required value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+              <div className="flex gap-2">
+                <select value={form.tipo_id} onChange={(e) => atualizarCampo("tipo_id", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Selecione...</option>
+                  {tipos.map((t) => (
+                    <option key={t.id} value={t.id}>{t.nome}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => setMostrarNovoTipo((v) => !v)}
+                  className="text-sm whitespace-nowrap px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                  + Novo tipo
+                </button>
+              </div>
+              {mostrarNovoTipo && (
+                <div className="flex gap-2 mt-2">
+                  <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
+                    placeholder="Nome do novo tipo (ex: Compactador de solo)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                  <button type="button" disabled={salvandoTipo} onClick={criarTipo}
+                    className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
+                    {salvandoTipo ? "Criando..." : "Criar"}
+                  </button>
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Modelo</label>
+              <input required value={form.modelo} onChange={(e) => atualizarCampo("modelo", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Marca</label>
+              <input required value={form.marca} onChange={(e) => atualizarCampo("marca", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Numero de serie (opcional)</label>
+              <input value={form.numero_serie} onChange={(e) => atualizarCampo("numero_serie", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Ano de fabricacao (opcional)</label>
+              <input type="number" value={form.ano_fabricacao} onChange={(e) => atualizarCampo("ano_fabricacao", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Valor (opcional)</label>
+              <input type="number" step="0.01" value={form.valor} onChange={(e) => atualizarCampo("valor", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Responsavel inicial (opcional)</label>
+              <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">Fica no deposito</option>
+                {funcionarios.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nome_completo}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Observacoes (opcional)</label>
+              <input value={form.observacoes} onChange={(e) => atualizarCampo("observacoes", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+          </div>
+          <button disabled={salvando} type="submit"
+            className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+            {salvando ? "Salvando..." : "Salvar"}
+          </button>
+        </form>
+      )}
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">

@@ -8,6 +8,7 @@ interface Funcionario {
   login: string
   email: string
   cargo: string
+  telefone: string | null
   role: string
   ativo: boolean
 }
@@ -19,6 +20,14 @@ interface FormState {
   telefone: string
   email: string
   login: string
+  role: "funcionario" | "gestor"
+}
+
+interface EditState {
+  nome_completo: string
+  cargo: string
+  telefone: string
+  email: string
   role: "funcionario" | "gestor"
 }
 
@@ -39,6 +48,12 @@ export default function FuncionariosPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
+
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<EditState | null>(null)
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+  const [desativando, setDesativando] = useState(false)
+  const [erroEdicao, setErroEdicao] = useState("")
 
   function carregar() {
     api.get("/api/funcionarios").then((res) => setLista(res.data)).catch(() => {})
@@ -70,12 +85,70 @@ export default function FuncionariosPage() {
     }
   }
 
+  function abrirEdicao(f: Funcionario) {
+    setMostrarForm(false)
+    setErroEdicao("")
+    setEditandoId(f.id)
+    setEditForm({
+      nome_completo: f.nome_completo,
+      cargo: f.cargo,
+      telefone: f.telefone || "",
+      email: f.email,
+      role: f.role as "funcionario" | "gestor",
+    })
+  }
+
+  function fecharEdicao() {
+    setEditandoId(null)
+    setEditForm(null)
+    setErroEdicao("")
+  }
+
+  function atualizarCampoEdicao(campo: keyof EditState, valor: string) {
+    setEditForm((f) => (f ? { ...f, [campo]: valor } : f))
+  }
+
+  async function salvarEdicao(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editandoId || !editForm) return
+    setErroEdicao("")
+    setSalvandoEdicao(true)
+    try {
+      await api.put(`/api/funcionarios/${editandoId}`, editForm)
+      fecharEdicao()
+      carregar()
+    } catch (err: any) {
+      setErroEdicao(err?.response?.data?.detail || "Erro ao salvar alteracoes.")
+    } finally {
+      setSalvandoEdicao(false)
+    }
+  }
+
+  async function desativarFuncionario() {
+    if (!editandoId) return
+    const nome = editForm?.nome_completo || "este funcionario"
+    if (!window.confirm(`Desativar ${nome}? Ele nao vai mais conseguir entrar no sistema, mas o historico de ativos e transferencias dele fica preservado. Da pra reativar depois, se precisar.`)) {
+      return
+    }
+    setDesativando(true)
+    setErroEdicao("")
+    try {
+      await api.put(`/api/funcionarios/${editandoId}`, { ativo: false })
+      fecharEdicao()
+      carregar()
+    } catch (err: any) {
+      setErroEdicao(err?.response?.data?.detail || "Erro ao desativar funcionario.")
+    } finally {
+      setDesativando(false)
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">Funcionarios</h1>
         <button
-          onClick={() => { setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
+          onClick={() => { fecharEdicao(); setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
           className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
         >
           {mostrarForm ? "Cancelar" : "+ Novo Funcionario"}
@@ -137,6 +210,56 @@ export default function FuncionariosPage() {
         </form>
       )}
 
+      {editandoId && editForm && (
+        <form onSubmit={salvarEdicao} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4 border-2 border-green-100">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">Editar funcionario</h2>
+            <button type="button" onClick={fecharEdicao} className="text-xs text-gray-500 hover:underline">Fechar</button>
+          </div>
+          {erroEdicao && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erroEdicao}</div>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nome completo</label>
+              <input required value={editForm.nome_completo} onChange={(e) => atualizarCampoEdicao("nome_completo", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Cargo</label>
+              <input required value={editForm.cargo} onChange={(e) => atualizarCampoEdicao("cargo", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Telefone (opcional)</label>
+              <input value={editForm.telefone} onChange={(e) => atualizarCampoEdicao("telefone", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">E-mail</label>
+              <input required type="email" value={editForm.email} onChange={(e) => atualizarCampoEdicao("email", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Funcao</label>
+              <select value={editForm.role} onChange={(e) => atualizarCampoEdicao("role", e.target.value as EditState["role"])}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="funcionario">Funcionario</option>
+                <option value="gestor">Gestor</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-2 border-t">
+            <button disabled={salvandoEdicao} type="submit"
+              className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+              {salvandoEdicao ? "Salvando..." : "Salvar alteracoes"}
+            </button>
+            <button type="button" disabled={desativando} onClick={desativarFuncionario}
+              className="bg-red-50 text-red-700 border border-red-300 text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-100 disabled:opacity-50">
+              {desativando ? "Desativando..." : "Desativar funcionario"}
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
@@ -144,7 +267,7 @@ export default function FuncionariosPage() {
           </thead>
           <tbody>
             {lista.map((f) => (
-              <tr key={f.id} className="border-t hover:bg-gray-50">
+              <tr key={f.id} onClick={() => abrirEdicao(f)} className="border-t hover:bg-gray-50 cursor-pointer">
                 <td className="p-3 font-medium">{f.nome_completo}</td>
                 <td className="p-3">{f.login}</td>
                 <td className="p-3">{f.cargo}</td>
