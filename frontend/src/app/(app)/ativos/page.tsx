@@ -23,6 +23,10 @@ interface Ativo {
   modelo: string
   marca: string
   status: string
+  numero_serie?: string | null
+  ano_fabricacao?: number | null
+  valor?: string | null
+  observacoes?: string | null
 }
 
 interface Tipo {
@@ -46,6 +50,7 @@ interface FormState {
   valor: string
   observacoes: string
   responsavel_id: string
+  status: string
 }
 
 const FORM_INICIAL: FormState = {
@@ -59,6 +64,7 @@ const FORM_INICIAL: FormState = {
   valor: "",
   observacoes: "",
   responsavel_id: "",
+  status: "",
 }
 
 export default function AtivosPage() {
@@ -72,6 +78,7 @@ export default function AtivosPage() {
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
   const [desativandoId, setDesativandoId] = useState<string | null>(null)
+  const [editandoId, setEditandoId] = useState<string | null>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -114,7 +121,36 @@ export default function AtivosPage() {
     }
   }
 
+  function abrirEdicao(a: Ativo) {
+    setEditandoId(a.id)
+    setErro("")
+    setSucesso("")
+    setForm({
+      categoria: a.categoria,
+      tipo_id: "",
+      codigo_interno: a.codigo_interno,
+      modelo: a.modelo,
+      marca: a.marca,
+      numero_serie: a.numero_serie || "",
+      ano_fabricacao: a.ano_fabricacao ? String(a.ano_fabricacao) : "",
+      valor: a.valor != null ? String(a.valor) : "",
+      observacoes: a.observacoes || "",
+      responsavel_id: "",
+      status: a.status,
+    })
+    setMostrarForm(true)
+  }
+
+  function cancelarForm() {
+    setMostrarForm(false)
+    setEditandoId(null)
+    setForm(FORM_INICIAL)
+    setErro("")
+    setSucesso("")
+  }
+
   useEffect(() => {
+    if (editandoId) return
     carregarTipos(tipoCategoriaAtual())
     setForm((f) => ({ ...f, tipo_id: "" }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,6 +180,30 @@ export default function AtivosPage() {
     e.preventDefault()
     setErro("")
     setSucesso("")
+
+    if (editandoId) {
+      setSalvando(true)
+      try {
+        await api.put(`/api/ativos/${editandoId}`, {
+          modelo: form.modelo,
+          marca: form.marca,
+          numero_serie: form.numero_serie || null,
+          ano_fabricacao: form.ano_fabricacao ? Number(form.ano_fabricacao) : null,
+          valor: form.valor || null,
+          observacoes: form.observacoes || null,
+          status: form.status || undefined,
+        })
+        setSucesso("Ativo atualizado.")
+        cancelarForm()
+        carregarAtivos()
+      } catch (err: any) {
+        setErro(err?.response?.data?.detail || "Erro ao atualizar ativo.")
+      } finally {
+        setSalvando(false)
+      }
+      return
+    }
+
     if (!form.tipo_id) {
       setErro("Selecione ou cadastre um tipo.")
       return
@@ -178,7 +238,7 @@ export default function AtivosPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">Ativos</h1>
         <button
-          onClick={() => { setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
+          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true) } }}
           className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
         >
           {mostrarForm ? "Cancelar" : "+ Novo Ativo"}
@@ -191,12 +251,13 @@ export default function AtivosPage() {
 
       {mostrarForm && (
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Ativo" : "Novo Ativo"}</h2>
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-              <select value={form.categoria} onChange={(e) => atualizarCampo("categoria", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              <select disabled={!!editandoId} value={form.categoria} onChange={(e) => atualizarCampo("categoria", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500">
                 {CATEGORIAS.map((c) => (
                   <option key={c.valor} value={c.valor}>{c.label}</option>
                 ))}
@@ -204,36 +265,38 @@ export default function AtivosPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Codigo interno</label>
-              <input required value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              <input required disabled={!!editandoId} value={form.codigo_interno} onChange={(e) => atualizarCampo("codigo_interno", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
-              <div className="flex gap-2">
-                <select value={form.tipo_id} onChange={(e) => atualizarCampo("tipo_id", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="">Selecione...</option>
-                  {tipos.map((t) => (
-                    <option key={t.id} value={t.id}>{t.nome}</option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => setMostrarNovoTipo((v) => !v)}
-                  className="text-sm whitespace-nowrap px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
-                  + Novo tipo
-                </button>
-              </div>
-              {mostrarNovoTipo && (
-                <div className="flex gap-2 mt-2">
-                  <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
-                    placeholder="Nome do novo tipo (ex: Compactador de solo)"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                  <button type="button" disabled={salvandoTipo} onClick={criarTipo}
-                    className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
-                    {salvandoTipo ? "Criando..." : "Criar"}
+            {!editandoId && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                <div className="flex gap-2">
+                  <select value={form.tipo_id} onChange={(e) => atualizarCampo("tipo_id", e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Selecione...</option>
+                    {tipos.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nome}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setMostrarNovoTipo((v) => !v)}
+                    className="text-sm whitespace-nowrap px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                    + Novo tipo
                   </button>
                 </div>
-              )}
-            </div>
+                {mostrarNovoTipo && (
+                  <div className="flex gap-2 mt-2">
+                    <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
+                      placeholder="Nome do novo tipo (ex: Compactador de solo)"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <button type="button" disabled={salvandoTipo} onClick={criarTipo}
+                      className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
+                      {salvandoTipo ? "Criando..." : "Criar"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Modelo</label>
               <input required value={form.modelo} onChange={(e) => atualizarCampo("modelo", e.target.value)}
@@ -259,16 +322,28 @@ export default function AtivosPage() {
               <input type="number" step="0.01" value={form.valor} onChange={(e) => atualizarCampo("valor", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Responsavel inicial (opcional)</label>
-              <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                <option value="">Fica no deposito</option>
-                {funcionarios.map((f) => (
-                  <option key={f.id} value={f.id}>{f.nome_completo}</option>
-                ))}
-              </select>
-            </div>
+            {editandoId ? (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                <select value={form.status} onChange={(e) => atualizarCampo("status", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  {Object.entries(STATUS_CONFIG).map(([valor, cfg]) => (
+                    <option key={valor} value={valor}>{cfg.label}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Responsavel inicial (opcional)</label>
+                <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Fica no deposito</option>
+                  {funcionarios.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nome_completo}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Observacoes (opcional)</label>
               <input value={form.observacoes} onChange={(e) => atualizarCampo("observacoes", e.target.value)}
@@ -277,7 +352,7 @@ export default function AtivosPage() {
           </div>
           <button disabled={salvando} type="submit"
             className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
-            {salvando ? "Salvando..." : "Salvar"}
+            {salvando ? "Salvando..." : editandoId ? "Salvar alteracoes" : "Salvar"}
           </button>
         </form>
       )}
@@ -302,7 +377,11 @@ export default function AtivosPage() {
                   <td className="p-3">{a.marca}</td>
                   <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>{cfg.label}</span></td>
                   {role === "gestor" && (
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                      <button onClick={() => abrirEdicao(a)}
+                        className="text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                        Editar
+                      </button>
                       <button disabled={desativandoId === a.id} onClick={() => desativarAtivo(a)}
                         className="text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
                         {desativandoId === a.id ? "Desativando..." : "Desativar"}

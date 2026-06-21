@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { getRole } from "@/lib/auth"
 
 interface Material {
   id: string
@@ -9,6 +10,7 @@ interface Material {
   quantidade_atual: number
   quantidade_minima: number
   unidade: string
+  descricao?: string | null
 }
 
 interface Tipo {
@@ -39,11 +41,13 @@ const FORM_INICIAL: FormState = {
 export default function MateriaisPage() {
   const [materiais, setMateriais] = useState<Material[]>([])
   const [tipos, setTipos] = useState<Tipo[]>([])
+  const [role, setRole] = useState<string | null>(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState<FormState>(FORM_INICIAL)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
+  const [editandoId, setEditandoId] = useState<string | null>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -58,12 +62,37 @@ export default function MateriaisPage() {
   }
 
   useEffect(() => {
+    setRole(getRole())
     carregarMateriais()
     carregarTipos()
   }, [])
 
   function atualizarCampo(campo: keyof FormState, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }))
+  }
+
+  function abrirEdicao(m: Material) {
+    setEditandoId(m.id)
+    setErro("")
+    setSucesso("")
+    setForm({
+      nome: m.nome,
+      codigo: m.codigo,
+      tipo_material_id: "",
+      descricao: m.descricao || "",
+      unidade: m.unidade,
+      quantidade_minima: String(m.quantidade_minima),
+      quantidade_atual: String(m.quantidade_atual),
+    })
+    setMostrarForm(true)
+  }
+
+  function cancelarForm() {
+    setMostrarForm(false)
+    setEditandoId(null)
+    setForm(FORM_INICIAL)
+    setErro("")
+    setSucesso("")
   }
 
   async function criarTipo() {
@@ -86,6 +115,26 @@ export default function MateriaisPage() {
     e.preventDefault()
     setErro("")
     setSucesso("")
+
+    if (editandoId) {
+      setSalvando(true)
+      try {
+        await api.put(`/api/materiais/${editandoId}`, {
+          nome: form.nome,
+          descricao: form.descricao || null,
+          quantidade_minima: form.quantidade_minima,
+        })
+        setSucesso("Material atualizado.")
+        cancelarForm()
+        carregarMateriais()
+      } catch (err: any) {
+        setErro(err?.response?.data?.detail || "Erro ao atualizar material.")
+      } finally {
+        setSalvando(false)
+      }
+      return
+    }
+
     if (!form.tipo_material_id) {
       setErro("Selecione ou cadastre um tipo de material.")
       return
@@ -117,7 +166,7 @@ export default function MateriaisPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">Materiais</h1>
         <button
-          onClick={() => { setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
+          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true) } }}
           className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
         >
           {mostrarForm ? "Cancelar" : "+ Novo Material"}
@@ -130,6 +179,7 @@ export default function MateriaisPage() {
 
       {mostrarForm && (
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
+          <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Material" : "Novo Material"}</h2>
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -139,46 +189,48 @@ export default function MateriaisPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Codigo</label>
-              <input required value={form.codigo} onChange={(e) => atualizarCampo("codigo", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              <input required disabled={!!editandoId} value={form.codigo} onChange={(e) => atualizarCampo("codigo", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de material</label>
-              <div className="flex gap-2">
-                <select value={form.tipo_material_id} onChange={(e) => atualizarCampo("tipo_material_id", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="">Selecione...</option>
-                  {tipos.map((t) => (
-                    <option key={t.id} value={t.id}>{t.nome}</option>
-                  ))}
-                </select>
-                <button type="button" onClick={() => setMostrarNovoTipo((v) => !v)}
-                  className="text-sm whitespace-nowrap px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
-                  + Novo tipo
-                </button>
-              </div>
-              {mostrarNovoTipo && (
-                <div className="flex gap-2 mt-2">
-                  <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
-                    placeholder="Nome do novo tipo (ex: Geomembrana PEAD)"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                  <button type="button" disabled={salvandoTipo} onClick={criarTipo}
-                    className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
-                    {salvandoTipo ? "Criando..." : "Criar"}
+            {!editandoId && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de material</label>
+                <div className="flex gap-2">
+                  <select value={form.tipo_material_id} onChange={(e) => atualizarCampo("tipo_material_id", e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">Selecione...</option>
+                    {tipos.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nome}</option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setMostrarNovoTipo((v) => !v)}
+                    className="text-sm whitespace-nowrap px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                    + Novo tipo
                   </button>
                 </div>
-              )}
-            </div>
+                {mostrarNovoTipo && (
+                  <div className="flex gap-2 mt-2">
+                    <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
+                      placeholder="Nome do novo tipo (ex: Geomembrana PEAD)"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    <button type="button" disabled={salvandoTipo} onClick={criarTipo}
+                      className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
+                      {salvandoTipo ? "Criando..." : "Criar"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Unidade</label>
-              <input value={form.unidade} onChange={(e) => atualizarCampo("unidade", e.target.value)}
+              <input disabled={!!editandoId} value={form.unidade} onChange={(e) => atualizarCampo("unidade", e.target.value)}
                 placeholder="un, m, kg, rolo..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade atual</label>
-              <input required type="number" step="0.01" value={form.quantidade_atual} onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade atual{editandoId ? " (ajuste pelo Movimento)" : ""}</label>
+              <input required disabled={!!editandoId} type="number" step="0.01" value={form.quantidade_atual} onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade minima</label>
@@ -193,7 +245,7 @@ export default function MateriaisPage() {
           </div>
           <button disabled={salvando} type="submit"
             className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
-            {salvando ? "Salvando..." : "Salvar"}
+            {salvando ? "Salvando..." : editandoId ? "Salvar alteracoes" : "Salvar"}
           </button>
         </form>
       )}
@@ -206,7 +258,15 @@ export default function MateriaisPage() {
             <div key={m.id} className="bg-white rounded-lg shadow p-4">
               <div className="flex justify-between mb-1">
                 <span className="font-medium">{m.nome} <span className="text-gray-400 text-xs">({m.codigo})</span></span>
-                <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
+                  {role === "gestor" && (
+                    <button onClick={() => abrirEdicao(m)}
+                      className="text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                      Editar
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="bg-gray-200 rounded-full h-2">
                 <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
