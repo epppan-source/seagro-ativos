@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { getRole, clearSession } from "@/lib/auth"
 import {
-  LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive, Users, LogOut,
+  LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive, Users, LogOut, Cog,
 } from "lucide-react"
 
 const NAV_GESTOR = [
@@ -11,6 +11,7 @@ const NAV_GESTOR = [
   { label: "Ativos", href: "/ativos", icon: Package },
   { label: "Transferências", href: "/transferencias", icon: ArrowRightLeft },
   { label: "Materiais", href: "/materiais", icon: Archive },
+  { label: "Peças de Reposição", href: "/pecas", icon: Cog },
   { label: "Funcionários", href: "/funcionarios", icon: Users },
 ]
 
@@ -19,6 +20,7 @@ const NAV_FUNCIONARIO = [
   { label: "Meus Ativos", href: "/ativos", icon: Package },
   { label: "Transferências", href: "/transferencias", icon: ArrowRightLeft },
   { label: "Materiais", href: "/materiais", icon: Archive },
+  { label: "Peças de Reposição", href: "/pecas", icon: Cog },
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
