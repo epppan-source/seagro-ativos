@@ -1,8 +1,8 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
-import { Pencil, Archive } from "lucide-react"
+import { Pencil, Archive, X } from "lucide-react"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -50,6 +50,12 @@ interface Codigo {
   status: string
 }
 
+interface Foto {
+  id: string
+  url: string
+  descricao: string | null
+}
+
 interface FormState {
   categoria: string
   tipo_id: string
@@ -94,6 +100,10 @@ export default function AtivosPage() {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [codigosDisponiveis, setCodigosDisponiveis] = useState<Codigo[]>([])
   const [usarCodigoManual, setUsarCodigoManual] = useState(false)
+  const [fotos, setFotos] = useState<Foto[]>([])
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
+  const [erroFoto, setErroFoto] = useState("")
+  const inputFotoRef = useRef<HTMLInputElement>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -148,10 +158,44 @@ export default function AtivosPage() {
     }
   }
 
+  function carregarFotos(ativoId: string) {
+    api.get(`/api/uploads/ativos/${ativoId}/fotos`).then((res) => setFotos(res.data)).catch(() => {})
+  }
+
+  async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo || !editandoId) return
+    setErroFoto("")
+    setEnviandoFoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("arquivo", arquivo)
+      await api.post(`/api/uploads/ativos/${editandoId}/foto`, formData)
+      carregarFotos(editandoId)
+    } catch (err: any) {
+      setErroFoto(err?.response?.data?.detail || "Erro ao enviar foto.")
+    } finally {
+      setEnviandoFoto(false)
+      if (inputFotoRef.current) inputFotoRef.current.value = ""
+    }
+  }
+
+  async function removerFoto(fotoId: string) {
+    if (!window.confirm("Remover esta foto do ativo?")) return
+    try {
+      await api.delete(`/api/uploads/ativos/fotos/${fotoId}`)
+      setFotos((f) => f.filter((x) => x.id !== fotoId))
+    } catch {
+      alert("Erro ao remover foto.")
+    }
+  }
+
   function abrirEdicao(a: Ativo) {
     setEditandoId(a.id)
     setErro("")
     setSucesso("")
+    setErroFoto("")
+    carregarFotos(a.id)
     setForm({
       categoria: a.categoria,
       tipo_id: "",
@@ -174,6 +218,8 @@ export default function AtivosPage() {
     setEditandoId(null)
     setForm(FORM_INICIAL)
     setUsarCodigoManual(false)
+    setFotos([])
+    setErroFoto("")
     setErro("")
     setSucesso("")
   }
@@ -284,6 +330,37 @@ export default function AtivosPage() {
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Ativo" : "Novo Ativo"}</h2>
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
+          {editandoId && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-600">Fotos</label>
+                <div>
+                  <input ref={inputFotoRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={enviarFoto} className="hidden" />
+                  <button type="button" disabled={enviandoFoto} onClick={() => inputFotoRef.current?.click()}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50">
+                    {enviandoFoto ? "Enviando..." : "+ Adicionar foto"}
+                  </button>
+                </div>
+              </div>
+              {erroFoto && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-2">{erroFoto}</div>}
+              {fotos.length === 0 ? (
+                <p className="text-xs text-gray-400">Nenhuma foto cadastrada ainda.</p>
+              ) : (
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {fotos.map((f) => (
+                    <div key={f.id} className="relative group">
+                      <img src={f.url} alt={f.descricao || "Foto do ativo"} className="w-full h-20 object-cover rounded-lg border border-gray-200" />
+                      <button type="button" onClick={() => removerFoto(f.id)} title="Remover foto"
+                        className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full p-1 shadow opacity-0 group-hover:opacity-100">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
