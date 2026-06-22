@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
 import { Pencil } from "lucide-react"
+import FotoUpload from "@/components/FotoUpload"
 
 interface Material {
   id: string
@@ -12,6 +13,7 @@ interface Material {
   quantidade_minima: number
   unidade: string
   descricao?: string | null
+  foto_url?: string | null
 }
 
 interface Tipo {
@@ -49,6 +51,7 @@ export default function MateriaisPage() {
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [fotoUrlEdicao, setFotoUrlEdicao] = useState<string | null>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -74,6 +77,7 @@ export default function MateriaisPage() {
 
   function abrirEdicao(m: Material) {
     setEditandoId(m.id)
+    setFotoUrlEdicao(m.foto_url || null)
     setErro("")
     setSucesso("")
     setForm({
@@ -88,9 +92,15 @@ export default function MateriaisPage() {
     setMostrarForm(true)
   }
 
+  function fotoAtualizada(url: string) {
+    setFotoUrlEdicao(url)
+    setMateriais((l) => l.map((x) => (x.id === editandoId ? { ...x, foto_url: url } : x)))
+  }
+
   function cancelarForm() {
     setMostrarForm(false)
     setEditandoId(null)
+    setFotoUrlEdicao(null)
     setForm(FORM_INICIAL)
     setErro("")
     setSucesso("")
@@ -182,6 +192,12 @@ export default function MateriaisPage() {
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Material" : "Novo Material"}</h2>
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
+          {editandoId && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Foto</label>
+              <FotoUpload url={fotoUrlEdicao} endpoint={`/api/uploads/materiais/${editandoId}/foto`} onUploaded={fotoAtualizada} />
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome</label>
@@ -258,7 +274,10 @@ export default function MateriaisPage() {
           return (
             <div key={m.id} className="bg-white rounded-lg shadow p-4">
               <div className="flex justify-between mb-1">
-                <span className="font-medium">{m.nome} <span className="text-gray-400 text-xs">({m.codigo})</span></span>
+                <span className="font-medium flex items-center gap-2">
+                  {m.foto_url && <img src={m.foto_url} alt={m.nome} className="w-7 h-7 rounded object-cover" />}
+                  {m.nome} <span className="text-gray-400 text-xs">({m.codigo})</span>
+                </span>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
                   {role === "gestor" && (

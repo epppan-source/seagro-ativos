@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
 import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
+import FotoUpload from "@/components/FotoUpload"
 
 interface Peca {
   id: string
@@ -12,6 +13,7 @@ interface Peca {
   quantidade_minima: number
   unidade: string
   descricao?: string | null
+  foto_url?: string | null
 }
 
 interface Tipo {
@@ -80,6 +82,7 @@ export default function PecasReposicaoPage() {
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [fotoUrlEdicao, setFotoUrlEdicao] = useState<string | null>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -118,6 +121,7 @@ export default function PecasReposicaoPage() {
 
   function abrirEdicao(p: Peca) {
     setEditandoId(p.id)
+    setFotoUrlEdicao(p.foto_url || null)
     setErro("")
     setSucesso("")
     setForm({
@@ -132,9 +136,15 @@ export default function PecasReposicaoPage() {
     setMostrarForm(true)
   }
 
+  function fotoAtualizada(url: string) {
+    setFotoUrlEdicao(url)
+    setPecas((l) => l.map((x) => (x.id === editandoId ? { ...x, foto_url: url } : x)))
+  }
+
   function cancelarForm() {
     setMostrarForm(false)
     setEditandoId(null)
+    setFotoUrlEdicao(null)
     setForm(FORM_INICIAL)
     setErro("")
     setSucesso("")
@@ -285,6 +295,12 @@ export default function PecasReposicaoPage() {
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Peça" : "Nova Peça de Reposição"}</h2>
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
+          {editandoId && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Foto</label>
+              <FotoUpload url={fotoUrlEdicao} endpoint={`/api/uploads/pecas/${editandoId}/foto`} onUploaded={fotoAtualizada} />
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome</label>
@@ -362,7 +378,10 @@ export default function PecasReposicaoPage() {
           return (
             <div key={p.id} className="bg-white rounded-lg shadow p-4">
               <div className="flex justify-between mb-1">
-                <span className="font-medium">{p.nome} <span className="text-gray-400 text-xs">({p.codigo})</span></span>
+                <span className="font-medium flex items-center gap-2">
+                  {p.foto_url && <img src={p.foto_url} alt={p.nome} className="w-7 h-7 rounded object-cover" />}
+                  {p.nome} <span className="text-gray-400 text-xs">({p.codigo})</span>
+                </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">{p.quantidade_atual} / {p.quantidade_minima} {p.unidade}</span>
                   <button onClick={() => abrirHistorico(p.id)}

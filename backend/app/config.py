@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./static/uploads"
     MAX_FILE_SIZE_MB: int = 10
 
+    CLOUDINARY_CLOUD_NAME: Optional[str] = None
+    CLOUDINARY_API_KEY: Optional[str] = None
+    CLOUDINARY_API_SECRET: Optional[str] = None
+
     GESTOR_EMAIL: str = "pancini@seagro.com.br"
 
     class Config:

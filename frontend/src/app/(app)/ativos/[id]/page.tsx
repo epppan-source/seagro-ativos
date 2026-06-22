@@ -1,7 +1,8 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
+import { X } from "lucide-react"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -36,6 +37,12 @@ interface Ativo {
   created_at: string
 }
 
+interface Foto {
+  id: string
+  url: string
+  descricao: string | null
+}
+
 export default function FichaAtivoPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
@@ -44,6 +51,47 @@ export default function FichaAtivoPage() {
   const [responsavelNome, setResponsavelNome] = useState("")
   const [erro, setErro] = useState("")
   const [carregando, setCarregando] = useState(true)
+  const [fotos, setFotos] = useState<Foto[]>([])
+  const [enviandoFoto, setEnviandoFoto] = useState(false)
+  const [erroFoto, setErroFoto] = useState("")
+  const inputFotoRef = useRef<HTMLInputElement>(null)
+
+  function carregarFotos() {
+    api.get(`/api/uploads/ativos/${params.id}/fotos`).then((res) => setFotos(res.data)).catch(() => {})
+  }
+
+  async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo) return
+    setErroFoto("")
+    setEnviandoFoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("arquivo", arquivo)
+      await api.post(`/api/uploads/ativos/${params.id}/foto`, formData)
+      carregarFotos()
+    } catch (err: any) {
+      setErroFoto(err?.response?.data?.detail || "Erro ao enviar foto.")
+    } finally {
+      setEnviandoFoto(false)
+      if (inputFotoRef.current) inputFotoRef.current.value = ""
+    }
+  }
+
+  async function removerFoto(fotoId: string) {
+    if (!window.confirm("Remover esta foto do ativo?")) return
+    try {
+      await api.delete(`/api/uploads/ativos/fotos/${fotoId}`)
+      setFotos((f) => f.filter((x) => x.id !== fotoId))
+    } catch {
+      alert("Erro ao remover foto.")
+    }
+  }
+
+  useEffect(() => {
+    carregarFotos()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id])
 
   useEffect(() => {
     api
@@ -114,6 +162,36 @@ export default function FichaAtivoPage() {
             : "Este ativo está desativado."}
         </div>
       )}
+
+      <div className="bg-white rounded-lg shadow p-5 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">Fotos</h2>
+          <div>
+            <input ref={inputFotoRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={enviarFoto} className="hidden" />
+            <button type="button" disabled={enviandoFoto} onClick={() => inputFotoRef.current?.click()}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50">
+              {enviandoFoto ? "Enviando..." : "+ Adicionar foto"}
+            </button>
+          </div>
+        </div>
+        {erroFoto && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-3">{erroFoto}</div>}
+        {fotos.length === 0 ? (
+          <p className="text-xs text-gray-400">Nenhuma foto cadastrada ainda.</p>
+        ) : (
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+            {fotos.map((f) => (
+              <div key={f.id} className="relative group">
+                <img src={f.url} alt={f.descricao || "Foto do ativo"} className="w-full h-24 object-cover rounded-lg border border-gray-200" />
+                <button onClick={() => removerFoto(f.id)} title="Remover foto"
+                  className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full p-1 shadow opacity-0 group-hover:opacity-100">
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="bg-white rounded-lg shadow p-5">
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

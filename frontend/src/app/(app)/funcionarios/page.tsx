@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { Pencil } from "lucide-react"
+import FotoUpload from "@/components/FotoUpload"
 
 interface Funcionario {
   id: string
@@ -12,6 +13,7 @@ interface Funcionario {
   telefone: string | null
   role: string
   ativo: boolean
+  foto_url?: string | null
 }
 
 interface FormState {
@@ -30,6 +32,7 @@ interface EditState {
   telefone: string
   email: string
   role: "funcionario" | "gestor"
+  foto_url: string | null
 }
 
 const FORM_INICIAL: FormState = {
@@ -96,7 +99,14 @@ export default function FuncionariosPage() {
       telefone: f.telefone || "",
       email: f.email,
       role: f.role as "funcionario" | "gestor",
+      foto_url: f.foto_url || null,
     })
+  }
+
+  function fotoAtualizada(url: string) {
+    if (!editandoId) return
+    setEditForm((f) => (f ? { ...f, foto_url: url } : f))
+    setLista((l) => l.map((x) => (x.id === editandoId ? { ...x, foto_url: url } : x)))
   }
 
   function fecharEdicao() {
@@ -218,6 +228,10 @@ export default function FuncionariosPage() {
             <button type="button" onClick={fecharEdicao} className="text-xs text-gray-500 hover:underline">Fechar</button>
           </div>
           {erroEdicao && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erroEdicao}</div>}
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Foto</label>
+            <FotoUpload url={editForm.foto_url} endpoint={`/api/uploads/funcionarios/${editandoId}/foto`} onUploaded={fotoAtualizada} redondo />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome completo</label>
@@ -269,7 +283,16 @@ export default function FuncionariosPage() {
           <tbody>
             {lista.map((f) => (
               <tr key={f.id} onClick={() => abrirEdicao(f)} className="border-t hover:bg-gray-50 cursor-pointer">
-                <td className="p-3 font-medium">{f.nome_completo}</td>
+                <td className="p-3 font-medium flex items-center gap-2">
+                  {f.foto_url ? (
+                    <img src={f.foto_url} alt={f.nome_completo} className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <span className="w-7 h-7 rounded-full bg-gray-200 text-gray-500 text-[10px] flex items-center justify-center">
+                      {f.nome_completo.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  {f.nome_completo}
+                </td>
                 <td className="p-3">{f.login}</td>
                 <td className="p-3">{f.cargo}</td>
                 <td className="p-3">{f.role}</td>
