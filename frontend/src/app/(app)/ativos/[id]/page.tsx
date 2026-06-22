@@ -30,6 +30,9 @@ interface Ativo {
   responsavel_id: string | null
   observacoes: string | null
   ativo: boolean
+  data_revisao_prevista: string | null
+  aposentado_em: string | null
+  motivo_aposentadoria: string | null
   created_at: string
 }
 
@@ -106,7 +109,9 @@ export default function FichaAtivoPage() {
 
       {!ativo.ativo && (
         <div className="bg-gray-100 border border-gray-300 text-gray-600 text-sm rounded-lg p-3 mb-4">
-          Este ativo está desativado.
+          {ativo.aposentado_em
+            ? `Este ativo foi aposentado em ${new Date(ativo.aposentado_em).toLocaleDateString("pt-BR")}.${ativo.motivo_aposentadoria ? ` Motivo: ${ativo.motivo_aposentadoria}` : ""}`
+            : "Este ativo está desativado."}
         </div>
       )}
 
@@ -143,6 +148,10 @@ export default function FichaAtivoPage() {
           <div>
             <dt className="text-xs text-gray-500">Cadastrado em</dt>
             <dd className="font-medium text-gray-800">{new Date(ativo.created_at).toLocaleDateString("pt-BR")}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500">Próxima revisão prevista</dt>
+            <dd className="font-medium text-gray-800">{ativo.data_revisao_prevista ? new Date(ativo.data_revisao_prevista).toLocaleDateString("pt-BR") : "-"}</dd>
           </div>
           {ativo.observacoes && (
             <div className="md:col-span-2">

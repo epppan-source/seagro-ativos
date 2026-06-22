@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum as PyEnum
 from decimal import Decimal
-from sqlalchemy import String, Boolean, Text, DateTime, Numeric, ForeignKey, Enum, Integer
+from sqlalchemy import String, Boolean, Text, DateTime, Date, Numeric, ForeignKey, Enum, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -34,6 +34,9 @@ class Ativo(Base):
     observacoes: Mapped[str | None] = mapped_column(Text)
     qr_code_url: Mapped[str | None] = mapped_column(String(500))
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    data_revisao_prevista: Mapped[date | None] = mapped_column(Date)
+    aposentado_em: Mapped[date | None] = mapped_column(Date)
+    motivo_aposentadoria: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

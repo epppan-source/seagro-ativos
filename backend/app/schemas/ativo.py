@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 from app.models.ativo import StatusAtivo, CategoriaAtivo
@@ -27,6 +27,9 @@ class AtivoUpdate(BaseModel):
     observacoes: str | None = None
     status: StatusAtivo | None = None
     ativo: bool | None = None
+    data_revisao_prevista: date | None = None
+    aposentado_em: date | None = None
+    motivo_aposentadoria: str | None = None
 
 class AtivoOut(AtivoBase):
     model_config = ConfigDict(from_attributes=True)
@@ -36,5 +39,8 @@ class AtivoOut(AtivoBase):
     responsavel_id: uuid.UUID | None = None
     qr_code_url: str | None = None
     ativo: bool
+    data_revisao_prevista: date | None = None
+    aposentado_em: date | None = None
+    motivo_aposentadoria: str | None = None
     created_at: datetime
     updated_at: datetime

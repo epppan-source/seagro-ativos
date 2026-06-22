@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
+import { Pencil, Archive } from "lucide-react"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -27,6 +28,9 @@ interface Ativo {
   ano_fabricacao?: number | null
   valor?: string | null
   observacoes?: string | null
+  data_revisao_prevista?: string | null
+  aposentado_em?: string | null
+  motivo_aposentadoria?: string | null
 }
 
 interface Tipo {
@@ -58,6 +62,7 @@ interface FormState {
   observacoes: string
   responsavel_id: string
   status: string
+  data_revisao_prevista: string
 }
 
 const FORM_INICIAL: FormState = {
@@ -72,6 +77,7 @@ const FORM_INICIAL: FormState = {
   observacoes: "",
   responsavel_id: "",
   status: "",
+  data_revisao_prevista: "",
 }
 
 export default function AtivosPage() {
@@ -84,7 +90,7 @@ export default function AtivosPage() {
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState("")
   const [sucesso, setSucesso] = useState("")
-  const [desativandoId, setDesativandoId] = useState<string | null>(null)
+  const [aposentandoId, setAposentandoId] = useState<string | null>(null)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [codigosDisponiveis, setCodigosDisponiveis] = useState<Codigo[]>([])
   const [usarCodigoManual, setUsarCodigoManual] = useState(false)
@@ -121,18 +127,24 @@ export default function AtivosPage() {
     carregarFuncionarios()
   }, [])
 
-  async function desativarAtivo(a: Ativo) {
-    if (!window.confirm(`Desativar ${a.codigo_interno} (${a.modelo})? Ele sai da lista de ativos e do depósito, mas o histórico de transferências e manutenções fica preservado. Da pra reativar depois pelo banco, se precisar.`)) {
+  async function aposentarAtivo(a: Ativo) {
+    if (!window.confirm(`Aposentar ${a.codigo_interno} (${a.modelo})? Ele sai da lista de ativos ativos e do depósito, mas o histórico de transferências e manutenções fica preservado. Da pra reativar depois pelo banco, se precisar.`)) {
       return
     }
-    setDesativandoId(a.id)
+    const motivo = window.prompt("Motivo da aposentadoria (opcional, ex: desgaste, quebra irreparável):", "") || ""
+    setAposentandoId(a.id)
     try {
-      await api.put(`/api/ativos/${a.id}`, { ativo: false })
+      await api.put(`/api/ativos/${a.id}`, {
+        ativo: false,
+        status: "INATIVO",
+        aposentado_em: new Date().toISOString().slice(0, 10),
+        motivo_aposentadoria: motivo || null,
+      })
       carregarAtivos()
     } catch (err: any) {
-      alert(err?.response?.data?.detail || "Erro ao desativar ativo.")
+      alert(err?.response?.data?.detail || "Erro ao aposentar ativo.")
     } finally {
-      setDesativandoId(null)
+      setAposentandoId(null)
     }
   }
 
@@ -152,6 +164,7 @@ export default function AtivosPage() {
       observacoes: a.observacoes || "",
       responsavel_id: "",
       status: a.status,
+      data_revisao_prevista: a.data_revisao_prevista || "",
     })
     setMostrarForm(true)
   }
@@ -209,6 +222,7 @@ export default function AtivosPage() {
           valor: form.valor || null,
           observacoes: form.observacoes || null,
           status: form.status || undefined,
+          data_revisao_prevista: form.data_revisao_prevista || null,
         })
         setSucesso("Ativo atualizado.")
         cancelarForm()
@@ -361,15 +375,22 @@ export default function AtivosPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             {editandoId ? (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-                <select value={form.status} onChange={(e) => atualizarCampo("status", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  {Object.entries(STATUS_CONFIG).map(([valor, cfg]) => (
-                    <option key={valor} value={valor}>{cfg.label}</option>
-                  ))}
-                </select>
-              </div>
+              <>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                  <select value={form.status} onChange={(e) => atualizarCampo("status", e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    {Object.entries(STATUS_CONFIG).map(([valor, cfg]) => (
+                      <option key={valor} value={valor}>{cfg.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Data prevista de revisão (opcional)</label>
+                  <input type="date" value={form.data_revisao_prevista} onChange={(e) => atualizarCampo("data_revisao_prevista", e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+              </>
             ) : (
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Responsavel inicial (opcional)</label>
@@ -417,12 +438,12 @@ export default function AtivosPage() {
                   {role === "gestor" && (
                     <td className="p-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => abrirEdicao(a)}
-                        className="text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
-                        Editar
+                        className="inline-flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                        <Pencil size={12} /> Editar
                       </button>
-                      <button disabled={desativandoId === a.id} onClick={() => desativarAtivo(a)}
-                        className="text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
-                        {desativandoId === a.id ? "Desativando..." : "Desativar"}
+                      <button disabled={aposentandoId === a.id} onClick={() => aposentarAtivo(a)}
+                        className="inline-flex items-center gap-1 text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
+                        <Archive size={12} /> {aposentandoId === a.id ? "Aposentando..." : "Aposentar"}
                       </button>
                     </td>
                   )}

@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
+import { Pencil } from "lucide-react"
 
 interface Funcionario {
   id: string
@@ -263,7 +264,7 @@ export default function FuncionariosPage() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
-            <tr><th className="p-3">Nome</th><th className="p-3">Login</th><th className="p-3">Cargo</th><th className="p-3">Funcao</th></tr>
+            <tr><th className="p-3">Nome</th><th className="p-3">Login</th><th className="p-3">Cargo</th><th className="p-3">Funcao</th><th className="p-3"></th></tr>
           </thead>
           <tbody>
             {lista.map((f) => (
@@ -272,9 +273,15 @@ export default function FuncionariosPage() {
                 <td className="p-3">{f.login}</td>
                 <td className="p-3">{f.cargo}</td>
                 <td className="p-3">{f.role}</td>
+                <td className="p-3 text-right">
+                  <button onClick={(e) => { e.stopPropagation(); abrirEdicao(f) }}
+                    className="flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                    <Pencil size={12} /> Editar
+                  </button>
+                </td>
               </tr>
             ))}
-            {lista.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-gray-400">Nenhum funcionario cadastrado.</td></tr>}
+            {lista.length === 0 && <tr><td colSpan={5} className="p-6 text-center text-gray-400">Nenhum funcionario cadastrado.</td></tr>}
           </tbody>
         </table>
       </div>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
+import { Pencil } from "lucide-react"
 
 interface Material {
   id: string
@@ -262,8 +263,8 @@ export default function MateriaisPage() {
                   <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
                   {role === "gestor" && (
                     <button onClick={() => abrirEdicao(m)}
-                      className="text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
-                      Editar
+                      className="flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                      <Pencil size={12} /> Editar
                     </button>
                   )}
                 </div>
