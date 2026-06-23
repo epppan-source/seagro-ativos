@@ -1,4 +1,6 @@
 import uuid
+from datetime import date, datetime
+from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -66,5 +68,19 @@ class AtivoService:
             if valor is not None:
                 setattr(ativo, campo, valor)
         await self.db.commit()
-        await registrar_auditoria(self.db, usuario_id, "ativos", "UPDATE", ativo.id, antes, dados)
+        dados_log = self._serializar_para_json(dados)
+        await registrar_auditoria(self.db, usuario_id, "ativos", "UPDATE", ativo.id, antes, dados_log)
         return ativo
+
+    @staticmethod
+    def _serializar_para_json(dados: dict) -> dict:
+        """Converte valores nao-JSON-serializaveis (Decimal, date, datetime) antes de salvar no log de auditoria (coluna JSONB)."""
+        resultado = {}
+        for campo, valor in dados.items():
+            if isinstance(valor, Decimal):
+                resultado[campo] = float(valor)
+            elif isinstance(valor, (date, datetime)):
+                resultado[campo] = valor.isoformat()
+            else:
+                resultado[campo] = valor
+        return resultado
