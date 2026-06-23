@@ -53,7 +53,7 @@ function RedefinirSenhaForm() {
             <input type="password" className="mt-1 w-full border rounded px-3 py-2" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} required />
           </div>
           <p className="text-xs text-gray-500">Mínimo 8 caracteres, 1 letra maiúscula e 1 número.</p>
-          <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-green-900 text-white rounded py-2 font-medium disabled:opacity-60">
+          <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-seagro-dark/90 text-white rounded py-2 font-medium disabled:opacity-60">
             {loading ? "Salvando..." : "Salvar nova senha"}
           </button>
         </form>

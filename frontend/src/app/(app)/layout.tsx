@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import Image from "next/image"
 import { getRole, clearSession } from "@/lib/auth"
 import {
   LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive, Users, LogOut, Cog,
@@ -42,7 +43,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex">
       <aside className="w-60 bg-seagro-dark text-white flex flex-col">
-        <div className="p-4 text-lg font-bold border-b border-white/10">SEAGRO Ativos</div>
+        <div className="p-4 border-b border-white/10 flex justify-center">
+          <div className="bg-white rounded-md px-3 py-2">
+            <Image src="/logo-seagro.jpg" alt="SEAGRO Soluções Ambientais" width={160} height={37} className="h-7 w-auto" priority />
+          </div>
+        </div>
         <nav className="flex-1 p-2 space-y-1">
           {nav.map((item) => {
             const active = pathname.startsWith(item.href)

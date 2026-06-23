@@ -48,7 +48,7 @@ export default function TrocarSenhaPage() {
             <label className="text-sm font-medium text-gray-700">Confirmar nova senha</label>
             <input type="password" className="mt-1 w-full border rounded px-3 py-2" value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)} required />
           </div>
-          <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-green-900 text-white rounded py-2 font-medium disabled:opacity-60">
+          <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-seagro-dark/90 text-white rounded py-2 font-medium disabled:opacity-60">
             {loading ? "Salvando..." : "Salvar e continuar"}
           </button>
         </form>

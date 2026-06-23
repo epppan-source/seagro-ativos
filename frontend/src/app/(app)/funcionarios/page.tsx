@@ -160,7 +160,7 @@ export default function FuncionariosPage() {
         <h1 className="text-xl font-bold text-gray-800">Funcionarios</h1>
         <button
           onClick={() => { fecharEdicao(); setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
-          className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
+          className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
           {mostrarForm ? "Cancelar" : "+ Novo Funcionario"}
         </button>
@@ -215,7 +215,7 @@ export default function FuncionariosPage() {
             </div>
           </div>
           <button disabled={salvando} type="submit"
-            className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+            className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
             {salvando ? "Salvando..." : "Salvar"}
           </button>
         </form>
@@ -264,7 +264,7 @@ export default function FuncionariosPage() {
           </div>
           <div className="flex items-center gap-3 pt-2 border-t">
             <button disabled={salvandoEdicao} type="submit"
-              className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+              className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
               {salvandoEdicao ? "Salvando..." : "Salvar alteracoes"}
             </button>
             <button type="button" disabled={desativando} onClick={desativarFuncionario}

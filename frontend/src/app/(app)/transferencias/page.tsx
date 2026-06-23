@@ -111,7 +111,7 @@ export default function TransferenciasPage() {
         <h1 className="text-xl font-bold text-gray-800">Transferências</h1>
         <button
           onClick={() => { setMostrarForm((v) => !v); setErro(""); setSucesso("") }}
-          className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
+          className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
           {mostrarForm ? "Cancelar" : "+ Solicitar Transferencia"}
         </button>
@@ -155,7 +155,7 @@ export default function TransferenciasPage() {
             </div>
           </div>
           <button disabled={salvando} type="submit"
-            className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+            className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
             {salvando ? "Enviando..." : "Solicitar"}
           </button>
         </form>

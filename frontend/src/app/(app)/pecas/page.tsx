@@ -276,7 +276,7 @@ export default function PecasReposicaoPage() {
         <h1 className="text-xl font-bold text-gray-800">Peças de Reposição</h1>
         <button
           onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true) } }}
-          className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800"
+          className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
           {mostrarForm ? "Cancelar" : "+ Nova Peça"}
         </button>
@@ -365,7 +365,7 @@ export default function PecasReposicaoPage() {
             </div>
           </div>
           <button disabled={salvando} type="submit"
-            className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+            className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
             {salvando ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar"}
           </button>
         </form>
@@ -447,7 +447,7 @@ export default function PecasReposicaoPage() {
                   </div>
                   <div className="flex gap-2">
                     <button disabled={movSalvando} type="submit"
-                      className="bg-green-700 text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
+                      className="bg-seagro text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
                       {movSalvando ? "Salvando..." : "Confirmar"}
                     </button>
                     <button type="button" onClick={cancelarMovimento}

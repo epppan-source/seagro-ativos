@@ -30,7 +30,7 @@ export default function EsqueciSenhaPage() {
               <label className="text-sm font-medium text-gray-700">E-mail</label>
               <input type="email" className="mt-1 w-full border rounded px-3 py-2" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
-            <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-green-900 text-white rounded py-2 font-medium disabled:opacity-60">
+            <button type="submit" disabled={loading} className="w-full bg-seagro-dark hover:bg-seagro-dark/90 text-white rounded py-2 font-medium disabled:opacity-60">
               {loading ? "Enviando..." : "Enviar link"}
             </button>
           </form>

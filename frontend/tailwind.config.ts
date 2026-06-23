@@ -4,7 +4,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        seagro: { dark: "#1B5E20", DEFAULT: "#2E7D32", light: "#4CAF50" },
+        seagro: { dark: "#0d3d2e", DEFAULT: "#2E7D32", light: "#4CAF50" },
+      },
+      fontFamily: {
+        sans: ["var(--font-opensans)", "ui-sans-serif", "system-ui"],
+        heading: ["var(--font-montserrat)", "ui-sans-serif", "system-ui"],
       },
     },
   },
