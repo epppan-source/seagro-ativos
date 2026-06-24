@@ -64,9 +64,11 @@ class AtivoService:
     async def atualizar(self, ativo_id: uuid.UUID, dados: dict, usuario_id: uuid.UUID) -> Ativo:
         ativo = await self.buscar_por_id(ativo_id)
         antes = {"status": ativo.status.value}
+        # dados já vem filtrado com exclude_unset=True no router, então toda chave aqui
+        # foi explicitamente enviada pelo cliente (mesmo que o valor seja None) -- por
+        # isso aplicamos direto, sem pular None, permitindo por ex. limpar responsavel_id.
         for campo, valor in dados.items():
-            if valor is not None:
-                setattr(ativo, campo, valor)
+            setattr(ativo, campo, valor)
         await self.db.commit()
         dados_log = self._serializar_para_json(dados)
         await registrar_auditoria(self.db, usuario_id, "ativos", "UPDATE", ativo.id, antes, dados_log)

@@ -19,6 +19,7 @@ class AtivoCreate(AtivoBase):
     responsavel_id: uuid.UUID | None = None
 
 class AtivoUpdate(BaseModel):
+    categoria: CategoriaAtivo | None = None
     modelo: str | None = None
     marca: str | None = None
     numero_serie: str | None = None
@@ -26,10 +27,21 @@ class AtivoUpdate(BaseModel):
     valor: Decimal | None = None
     observacoes: str | None = None
     status: StatusAtivo | None = None
+    responsavel_id: uuid.UUID | None = None
     ativo: bool | None = None
     data_revisao_prevista: date | None = None
     aposentado_em: date | None = None
     motivo_aposentadoria: str | None = None
+
+class AtivoDocumentoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    ativo_id: uuid.UUID
+    nome: str
+    tipo_documento: str
+    arquivo_url: str
+    nome_arquivo_original: str | None = None
+    created_at: datetime
 
 class AtivoOut(AtivoBase):
     model_config = ConfigDict(from_attributes=True)

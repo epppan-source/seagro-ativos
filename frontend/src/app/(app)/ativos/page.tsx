@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
-import { Pencil, Archive, X } from "lucide-react"
+import { Pencil, Archive, X, FileText, Download } from "lucide-react"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -15,6 +15,15 @@ const CATEGORIAS: { valor: string; label: string; tipoCategoria: string }[] = [
   { valor: "EQUIPAMENTO", label: "Equipamento", tipoCategoria: "equipamento" },
   { valor: "FERRAMENTA", label: "Ferramenta", tipoCategoria: "ferramenta" },
   { valor: "ACESSORIO", label: "Acessório", tipoCategoria: "acessorio" },
+]
+
+const TIPOS_DOCUMENTO: { valor: string; label: string }[] = [
+  { valor: "CALIBRACAO", label: "Calibração" },
+  { valor: "NOTA_FISCAL", label: "Nota Fiscal" },
+  { valor: "CERTIFICADO", label: "Certificado" },
+  { valor: "MANUAL", label: "Manual" },
+  { valor: "GARANTIA", label: "Garantia" },
+  { valor: "OUTRO", label: "Outro" },
 ]
 
 interface Ativo {
@@ -31,6 +40,7 @@ interface Ativo {
   data_revisao_prevista?: string | null
   aposentado_em?: string | null
   motivo_aposentadoria?: string | null
+  responsavel_id?: string | null
 }
 
 interface Tipo {
@@ -54,6 +64,15 @@ interface Foto {
   id: string
   url: string
   descricao: string | null
+}
+
+interface Documento {
+  id: string
+  nome: string
+  tipo_documento: string
+  arquivo_url: string
+  nome_arquivo_original: string | null
+  created_at: string
 }
 
 interface FormState {
@@ -104,6 +123,14 @@ export default function AtivosPage() {
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const [erroFoto, setErroFoto] = useState("")
   const inputFotoRef = useRef<HTMLInputElement>(null)
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null)
+
+  const [documentos, setDocumentos] = useState<Documento[]>([])
+  const [enviandoDocumento, setEnviandoDocumento] = useState(false)
+  const [erroDocumento, setErroDocumento] = useState("")
+  const [novoDocNome, setNovoDocNome] = useState("")
+  const [novoDocTipo, setNovoDocTipo] = useState("CALIBRACAO")
+  const inputDocRef = useRef<HTMLInputElement>(null)
 
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
@@ -165,6 +192,11 @@ export default function AtivosPage() {
   async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0]
     if (!arquivo || !editandoId) return
+    if (fotos.length >= 3) {
+      setErroFoto("Limite de 3 fotos por ativo. Remova uma foto antes de adicionar outra.")
+      if (inputFotoRef.current) inputFotoRef.current.value = ""
+      return
+    }
     setErroFoto("")
     setEnviandoFoto(true)
     try {
@@ -190,12 +222,49 @@ export default function AtivosPage() {
     }
   }
 
+  function carregarDocumentos(ativoId: string) {
+    api.get(`/api/uploads/ativos/${ativoId}/documentos`).then((res) => setDocumentos(res.data)).catch(() => {})
+  }
+
+  async function enviarDocumento(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0]
+    if (!arquivo || !editandoId) return
+    setErroDocumento("")
+    setEnviandoDocumento(true)
+    try {
+      const formData = new FormData()
+      formData.append("arquivo", arquivo)
+      formData.append("nome", novoDocNome.trim() || arquivo.name)
+      formData.append("tipo_documento", novoDocTipo)
+      await api.post(`/api/uploads/ativos/${editandoId}/documento`, formData)
+      carregarDocumentos(editandoId)
+      setNovoDocNome("")
+    } catch (err: any) {
+      setErroDocumento(err?.response?.data?.detail || "Erro ao enviar documento.")
+    } finally {
+      setEnviandoDocumento(false)
+      if (inputDocRef.current) inputDocRef.current.value = ""
+    }
+  }
+
+  async function removerDocumento(documentoId: string) {
+    if (!window.confirm("Remover este documento do ativo?")) return
+    try {
+      await api.delete(`/api/uploads/ativos/documentos/${documentoId}`)
+      setDocumentos((d) => d.filter((x) => x.id !== documentoId))
+    } catch {
+      alert("Erro ao remover documento.")
+    }
+  }
+
   function abrirEdicao(a: Ativo) {
     setEditandoId(a.id)
     setErro("")
     setSucesso("")
     setErroFoto("")
+    setErroDocumento("")
     carregarFotos(a.id)
+    carregarDocumentos(a.id)
     setForm({
       categoria: a.categoria,
       tipo_id: "",
@@ -206,7 +275,7 @@ export default function AtivosPage() {
       ano_fabricacao: a.ano_fabricacao ? String(a.ano_fabricacao) : "",
       valor: a.valor != null ? String(a.valor) : "",
       observacoes: a.observacoes || "",
-      responsavel_id: "",
+      responsavel_id: a.responsavel_id || "",
       status: a.status,
       data_revisao_prevista: a.data_revisao_prevista || "",
     })
@@ -219,7 +288,9 @@ export default function AtivosPage() {
     setForm(FORM_INICIAL)
     setUsarCodigoManual(false)
     setFotos([])
+    setDocumentos([])
     setErroFoto("")
+    setErroDocumento("")
     setErro("")
     setSucesso("")
   }
@@ -261,6 +332,7 @@ export default function AtivosPage() {
       setSalvando(true)
       try {
         await api.put(`/api/ativos/${editandoId}`, {
+          categoria: form.categoria,
           modelo: form.modelo,
           marca: form.marca,
           numero_serie: form.numero_serie || null,
@@ -268,6 +340,7 @@ export default function AtivosPage() {
           valor: form.valor || null,
           observacoes: form.observacoes || null,
           status: form.status || undefined,
+          responsavel_id: form.responsavel_id || null,
           data_revisao_prevista: form.data_revisao_prevista || null,
         })
         setSucesso("Ativo atualizado.")
@@ -326,6 +399,12 @@ export default function AtivosPage() {
         <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4">{sucesso}</div>
       )}
 
+      {fotoAmpliada && (
+        <div onClick={() => setFotoAmpliada(null)} className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 cursor-zoom-out">
+          <img src={fotoAmpliada} alt="Foto ampliada" className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg" />
+        </div>
+      )}
+
       {mostrarForm && (
         <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Ativo" : "Novo Ativo"}</h2>
@@ -337,7 +416,7 @@ export default function AtivosPage() {
                 <div>
                   <input ref={inputFotoRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp"
                     onChange={enviarFoto} className="hidden" />
-                  <button type="button" disabled={enviandoFoto} onClick={() => inputFotoRef.current?.click()}
+                  <button type="button" disabled={enviandoFoto || fotos.length >= 3} onClick={() => inputFotoRef.current?.click()}
                     className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50">
                     {enviandoFoto ? "Enviando..." : "+ Adicionar foto"}
                   </button>
@@ -347,10 +426,13 @@ export default function AtivosPage() {
               {fotos.length === 0 ? (
                 <p className="text-xs text-gray-400">Nenhuma foto cadastrada ainda.</p>
               ) : (
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {fotos.map((f) => (
                     <div key={f.id} className="relative group">
-                      <img src={f.url} alt={f.descricao || "Foto do ativo"} className="w-full h-20 object-cover rounded-lg border border-gray-200" />
+                      <button type="button" onClick={() => setFotoAmpliada(f.url)} className="block w-full">
+                        <img src={f.url} alt={f.descricao || "Foto do ativo"}
+                          className="w-full h-36 object-contain bg-gray-50 rounded-lg border border-gray-200" />
+                      </button>
                       <button type="button" onClick={() => removerFoto(f.id)} title="Remover foto"
                         className="absolute top-1 right-1 bg-white/90 text-red-600 rounded-full p-1 shadow opacity-0 group-hover:opacity-100">
                         <X size={12} />
@@ -359,17 +441,73 @@ export default function AtivosPage() {
                   ))}
                 </div>
               )}
+              <p className="text-xs text-gray-400 mt-1">Clique em uma foto para ampliar. Máximo de 3 fotos por ativo ({fotos.length}/3).</p>
+            </div>
+          )}
+          {editandoId && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-600">Documentos (calibração, NF, manual, etc.)</label>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-2">
+                <input value={novoDocNome} onChange={(e) => setNovoDocNome(e.target.value)}
+                  placeholder="Nome do documento (ex: Calibração 06/2026)"
+                  className="flex-1 min-w-[180px] border border-gray-300 rounded-lg px-3 py-1.5 text-xs" />
+                <select value={novoDocTipo} onChange={(e) => setNovoDocTipo(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs">
+                  {TIPOS_DOCUMENTO.map((t) => (
+                    <option key={t.valor} value={t.valor}>{t.label}</option>
+                  ))}
+                </select>
+                <input ref={inputDocRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx"
+                  onChange={enviarDocumento} className="hidden" />
+                <button type="button" disabled={enviandoDocumento} onClick={() => inputDocRef.current?.click()}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 whitespace-nowrap">
+                  {enviandoDocumento ? "Enviando..." : "+ Anexar arquivo"}
+                </button>
+              </div>
+              {erroDocumento && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 mb-2">{erroDocumento}</div>}
+              {documentos.length === 0 ? (
+                <p className="text-xs text-gray-400">Nenhum documento anexado ainda.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg">
+                  {documentos.map((d) => (
+                    <li key={d.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText size={14} className="text-gray-400 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-gray-700 truncate">{d.nome}</p>
+                          <p className="text-xs text-gray-400">{TIPOS_DOCUMENTO.find((t) => t.valor === d.tipo_documento)?.label || d.tipo_documento}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a href={d.arquivo_url} target="_blank" rel="noopener noreferrer" title="Abrir/baixar"
+                          className="text-gray-500 hover:text-seagro">
+                          <Download size={14} />
+                        </a>
+                        <button type="button" onClick={() => removerDocumento(d.id)} title="Remover documento"
+                          className="text-red-500 hover:text-red-700">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-              <select disabled={!!editandoId} value={form.categoria} onChange={(e) => atualizarCampo("categoria", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500">
+              <select value={form.categoria} onChange={(e) => atualizarCampo("categoria", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 {CATEGORIAS.map((c) => (
                   <option key={c.valor} value={c.valor}>{c.label}</option>
                 ))}
               </select>
+              {editandoId && (
+                <p className="text-xs text-gray-400 mt-1">Atenção: ao trocar a categoria, o tipo específico cadastrado não muda automaticamente.</p>
+              )}
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -451,7 +589,7 @@ export default function AtivosPage() {
               <input type="number" step="0.01" value={form.valor} onChange={(e) => atualizarCampo("valor", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
-            {editandoId ? (
+            {editandoId && (
               <>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
@@ -468,18 +606,17 @@ export default function AtivosPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                 </div>
               </>
-            ) : (
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Responsavel inicial (opcional)</label>
-                <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="">Fica no deposito</option>
-                  {funcionarios.map((f) => (
-                    <option key={f.id} value={f.id}>{f.nome_completo}</option>
-                  ))}
-                </select>
-              </div>
             )}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{editandoId ? "Responsável" : "Responsavel inicial (opcional)"}</label>
+              <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">Fica no deposito</option>
+                {funcionarios.map((f) => (
+                  <option key={f.id} value={f.id}>{f.nome_completo}</option>
+                ))}
+              </select>
+            </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Observacoes (opcional)</label>
               <input value={form.observacoes} onChange={(e) => atualizarCampo("observacoes", e.target.value)}

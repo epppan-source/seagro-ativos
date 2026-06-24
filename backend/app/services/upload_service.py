@@ -6,6 +6,7 @@ from fastapi.concurrency import run_in_threadpool
 from app.config import settings
 
 EXTENSOES_PERMITIDAS = {".jpg", ".jpeg", ".png", ".webp"}
+EXTENSOES_DOCUMENTO = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".doc", ".docx", ".xls", ".xlsx"}
 
 _cloudinary_configurado = False
 
@@ -28,7 +29,7 @@ def _configurar_cloudinary():
     _cloudinary_configurado = True
 
 
-def _upload_sincrono_cloudinary(conteudo: bytes, subpasta: str) -> str:
+def _upload_sincrono_cloudinary(conteudo: bytes, subpasta: str, resource_type: str = "image") -> str:
     import cloudinary.uploader
     _configurar_cloudinary()
     resultado = cloudinary.uploader.upload(
@@ -36,7 +37,7 @@ def _upload_sincrono_cloudinary(conteudo: bytes, subpasta: str) -> str:
         folder=f"seagro-ativos/{subpasta}",
         public_id=str(uuid.uuid4()),
         overwrite=True,
-        resource_type="image",
+        resource_type=resource_type,
     )
     return resultado["secure_url"]
 
@@ -53,7 +54,26 @@ async def salvar_upload(arquivo: UploadFile, subpasta: str) -> str:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Arquivo excede o tamanho máximo permitido")
 
     if _cloudinary_disponivel():
-        return await run_in_threadpool(_upload_sincrono_cloudinary, conteudo, subpasta)
+        return await run_in_threadpool(_upload_sincrono_cloudinary, conteudo, subpasta, "image")
+
+    return await _salvar_local(conteudo, ext, subpasta)
+
+
+async def salvar_documento(arquivo: UploadFile, subpasta: str) -> str:
+    """Salva um documento (PDF, planilha, foto de NF/calibracao etc). Mesma logica de
+    armazenamento do salvar_upload, mas aceita mais formatos e usa resource_type=raw
+    no Cloudinary para arquivos que nao sao imagem."""
+    ext = os.path.splitext(arquivo.filename)[1].lower()
+    if ext not in EXTENSOES_DOCUMENTO:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Formato de documento nao suportado")
+
+    conteudo = await arquivo.read()
+    if len(conteudo) > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Arquivo excede o tamanho maximo permitido")
+
+    if _cloudinary_disponivel():
+        tipo_recurso = "image" if ext in {".jpg", ".jpeg", ".png", ".webp"} else "raw"
+        return await run_in_threadpool(_upload_sincrono_cloudinary, conteudo, subpasta, tipo_recurso)
 
     return await _salvar_local(conteudo, ext, subpasta)
 

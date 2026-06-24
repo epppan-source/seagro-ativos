@@ -17,8 +17,10 @@ class Material(Base):
     unidade: Mapped[str] = mapped_column(String(20), default="un")
     quantidade_atual: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
     quantidade_minima: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
+    responsavel_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("funcionarios.id"), nullable=True)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     tipo_material: Mapped["TipoMaterial"] = relationship("TipoMaterial")
+    responsavel: Mapped["Funcionario"] = relationship("Funcionario", foreign_keys=[responsavel_id])

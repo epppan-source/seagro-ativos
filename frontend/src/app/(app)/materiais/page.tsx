@@ -14,11 +14,17 @@ interface Material {
   unidade: string
   descricao?: string | null
   foto_url?: string | null
+  responsavel_id?: string | null
 }
 
 interface Tipo {
   id: string
   nome: string
+}
+
+interface Funcionario {
+  id: string
+  nome_completo: string
 }
 
 interface FormState {
@@ -29,6 +35,7 @@ interface FormState {
   unidade: string
   quantidade_minima: string
   quantidade_atual: string
+  responsavel_id: string
 }
 
 const FORM_INICIAL: FormState = {
@@ -39,6 +46,7 @@ const FORM_INICIAL: FormState = {
   unidade: "un",
   quantidade_minima: "0",
   quantidade_atual: "0",
+  responsavel_id: "",
 }
 
 export default function MateriaisPage() {
@@ -56,6 +64,7 @@ export default function MateriaisPage() {
   const [mostrarNovoTipo, setMostrarNovoTipo] = useState(false)
   const [novoTipoNome, setNovoTipoNome] = useState("")
   const [salvandoTipo, setSalvandoTipo] = useState(false)
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
 
   function carregarMateriais() {
     api.get("/api/materiais").then((res) => setMateriais(res.data)).catch(() => {})
@@ -65,10 +74,15 @@ export default function MateriaisPage() {
     api.get("/api/tipos/material").then((res) => setTipos(res.data)).catch(() => {})
   }
 
+  function carregarFuncionarios() {
+    api.get("/api/funcionarios").then((res) => setFuncionarios(res.data)).catch(() => {})
+  }
+
   useEffect(() => {
     setRole(getRole())
     carregarMateriais()
     carregarTipos()
+    carregarFuncionarios()
   }, [])
 
   function atualizarCampo(campo: keyof FormState, valor: string) {
@@ -88,6 +102,7 @@ export default function MateriaisPage() {
       unidade: m.unidade,
       quantidade_minima: String(m.quantidade_minima),
       quantidade_atual: String(m.quantidade_atual),
+      responsavel_id: m.responsavel_id || "",
     })
     setMostrarForm(true)
   }
@@ -134,6 +149,7 @@ export default function MateriaisPage() {
           nome: form.nome,
           descricao: form.descricao || null,
           quantidade_minima: form.quantidade_minima,
+          responsavel_id: form.responsavel_id || null,
         })
         setSucesso("Material atualizado.")
         cancelarForm()
@@ -259,6 +275,18 @@ export default function MateriaisPage() {
               <input value={form.descricao} onChange={(e) => atualizarCampo("descricao", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
+            {editandoId && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Responsável</label>
+                <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Sem responsável</option>
+                  {funcionarios.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nome_completo}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <button disabled={salvando} type="submit"
             className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">

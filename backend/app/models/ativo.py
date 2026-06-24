@@ -44,6 +44,7 @@ class Ativo(Base):
         "Funcionario", back_populates="ativos_responsavel", foreign_keys=[responsavel_id]
     )
     fotos: Mapped[list["AtivoFoto"]] = relationship("AtivoFoto", back_populates="ativo")
+    documentos: Mapped[list["AtivoDocumento"]] = relationship("AtivoDocumento", back_populates="ativo")
     manutencoes: Mapped[list["Manutencao"]] = relationship("Manutencao", back_populates="ativo")
     transferencias: Mapped[list["Transferencia"]] = relationship("Transferencia", back_populates="ativo")
 
@@ -55,3 +56,17 @@ class AtivoFoto(Base):
     descricao: Mapped[str | None] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     ativo: Mapped["Ativo"] = relationship("Ativo", back_populates="fotos")
+
+# Documentos anexados a um ativo (ex.: certificado de calibracao, nota fiscal,
+# manual, garantia). Cada anexo guarda um nome dado pelo usuario, um tipo/categoria
+# livre (ex.: CALIBRACAO, NOTA_FISCAL) e a URL do arquivo.
+class AtivoDocumento(Base):
+    __tablename__ = "ativo_documentos"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    ativo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ativos.id"), nullable=False)
+    nome: Mapped[str] = mapped_column(String(200), nullable=False)
+    tipo_documento: Mapped[str] = mapped_column(String(50), default="OUTRO")
+    arquivo_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    nome_arquivo_original: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    ativo: Mapped["Ativo"] = relationship("Ativo", back_populates="documentos")

@@ -14,11 +14,17 @@ interface Peca {
   unidade: string
   descricao?: string | null
   foto_url?: string | null
+  responsavel_id?: string | null
 }
 
 interface Tipo {
   id: string
   nome: string
+}
+
+interface Funcionario {
+  id: string
+  nome_completo: string
 }
 
 interface Ativo {
@@ -43,6 +49,7 @@ interface FormState {
   unidade: string
   quantidade_minima: string
   quantidade_atual: string
+  responsavel_id: string
 }
 
 const FORM_INICIAL: FormState = {
@@ -53,6 +60,7 @@ const FORM_INICIAL: FormState = {
   unidade: "un",
   quantidade_minima: "0",
   quantidade_atual: "0",
+  responsavel_id: "",
 }
 
 interface MovForm {
@@ -95,6 +103,7 @@ export default function PecasReposicaoPage() {
 
   const [historicoPecaId, setHistoricoPecaId] = useState<string | null>(null)
   const [historico, setHistorico] = useState<Movimento[]>([])
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
 
   function carregarPecas() {
     api.get("/api/pecas").then((res) => setPecas(res.data)).catch(() => {})
@@ -108,11 +117,16 @@ export default function PecasReposicaoPage() {
     api.get("/api/ativos").then((res) => setAtivos(res.data)).catch(() => {})
   }
 
+  function carregarFuncionarios() {
+    api.get("/api/funcionarios").then((res) => setFuncionarios(res.data)).catch(() => {})
+  }
+
   useEffect(() => {
     setRole(getRole())
     carregarPecas()
     carregarTipos()
     carregarAtivos()
+    carregarFuncionarios()
   }, [])
 
   function atualizarCampo(campo: keyof FormState, valor: string) {
@@ -132,6 +146,7 @@ export default function PecasReposicaoPage() {
       unidade: p.unidade,
       quantidade_minima: String(p.quantidade_minima),
       quantidade_atual: String(p.quantidade_atual),
+      responsavel_id: p.responsavel_id || "",
     })
     setMostrarForm(true)
   }
@@ -178,6 +193,7 @@ export default function PecasReposicaoPage() {
           nome: form.nome,
           descricao: form.descricao || null,
           quantidade_minima: form.quantidade_minima,
+          responsavel_id: form.responsavel_id || null,
         })
         setSucesso("Peça atualizada.")
         cancelarForm()
@@ -363,6 +379,18 @@ export default function PecasReposicaoPage() {
               <input value={form.descricao} onChange={(e) => atualizarCampo("descricao", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
+            {editandoId && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Responsável</label>
+                <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Sem responsável</option>
+                  {funcionarios.map((f) => (
+                    <option key={f.id} value={f.id}>{f.nome_completo}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <button disabled={salvando} type="submit"
             className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">

@@ -9,6 +9,7 @@ class MaterialBase(BaseModel):
     descricao: str | None = None
     unidade: str = "un"
     quantidade_minima: Decimal = Decimal("0")
+    responsavel_id: uuid.UUID | None = None
 
 class MaterialCreate(MaterialBase):
     codigo: str
@@ -18,6 +19,7 @@ class MaterialUpdate(BaseModel):
     nome: str | None = None
     descricao: str | None = None
     quantidade_minima: Decimal | None = None
+    responsavel_id: uuid.UUID | None = None
     ativo: bool | None = None
 
 class MaterialMovimento(BaseModel):
