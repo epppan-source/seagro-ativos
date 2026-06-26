@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from enum import Enum as PyEnum
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -76,13 +77,17 @@ class AtivoService:
 
     @staticmethod
     def _serializar_para_json(dados: dict) -> dict:
-        """Converte valores nao-JSON-serializaveis (Decimal, date, datetime) antes de salvar no log de auditoria (coluna JSONB)."""
+        """Converte valores não-JSON-serializáveis (Decimal, date, datetime) antes de salvar no log de auditoria (coluna JSONB)."""
         resultado = {}
         for campo, valor in dados.items():
             if isinstance(valor, Decimal):
                 resultado[campo] = float(valor)
             elif isinstance(valor, (date, datetime)):
                 resultado[campo] = valor.isoformat()
+            elif isinstance(valor, uuid.UUID):
+                resultado[campo] = str(valor)
+            elif isinstance(valor, PyEnum):
+                resultado[campo] = valor.value
             else:
                 resultado[campo] = valor
         return resultado
