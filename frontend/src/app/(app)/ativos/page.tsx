@@ -373,6 +373,13 @@ export default function AtivosPage() {
         responsavel_id: form.responsavel_id || null,
       })
       setSucesso("Ativo cadastrado.")
+      // a etiqueta usada acima de fica marcada como EM_USO no banco, mas o
+      // useEffect que recarrega codigosDisponiveis só dispara quando a
+      // categoria muda -- se o próximo cadastro for da mesma categoria, a
+      // lista ficava com a "foto antiga" e mostrava a etiqueta já usada
+      // como se estivesse disponível, com risco de reaproveitar a mesma
+      // etiqueta em outro ativo. Recarregamos aqui pra garantir lista atual.
+      carregarCodigosDisponiveis(form.categoria)
       setForm(FORM_INICIAL)
       setMostrarForm(false)
       carregarAtivos()
