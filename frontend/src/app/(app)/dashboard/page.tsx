@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
-import { Wrench, Archive, Warehouse, User, ChevronDown, ChevronUp, AlertTriangle, LucideIcon } from "lucide-react"
+import { Wrench, Archive, Warehouse, User, AlertTriangle, LucideIcon } from "lucide-react"
 
 interface AtivoResumo {
   id: string
@@ -52,8 +52,6 @@ const ALERTA_BG = "#FDECEA"
 
 export default function DashboardPage() {
   const [painel, setPainel] = useState<Painel | null>(null)
-  const [abertoFuncionario, setAbertoFuncionario] = useState<string | null>(null)
-  const [abertoFixo, setAbertoFixo] = useState<string | null>(null)
 
   useEffect(() => {
     api.get("/api/dashboard/painel").then((res) => setPainel(res.data)).catch(() => {})
@@ -68,45 +66,37 @@ export default function DashboardPage() {
       <h1 className="text-xl font-bold mb-6" style={{ color: VERDE_ESCURO }}>Dashboard</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <CardExpansivel
+        <Card
           titulo="Depósito"
           subtitulo={`${painel.deposito.total} ativo(s) no depósito`}
           icone={Warehouse}
-          aberto={abertoFixo === "deposito"}
-          onToggle={() => setAbertoFixo(abertoFixo === "deposito" ? null : "deposito")}
         >
           <ListaAtivos ativos={painel.deposito.ativos} compacto />
-        </CardExpansivel>
+        </Card>
 
-        <CardExpansivel
+        <Card
           titulo="Manutenção"
           subtitulo={`${painel.manutencao.total} em manutenção · ${painel.manutencao.manutencoes_agendadas} agendada(s)`}
           icone={Wrench}
-          aberto={abertoFixo === "manutencao"}
-          onToggle={() => setAbertoFixo(abertoFixo === "manutencao" ? null : "manutencao")}
         >
           <ListaAtivos ativos={painel.manutencao.ativos} compacto />
-        </CardExpansivel>
+        </Card>
 
-        <CardExpansivel
+        <Card
           titulo="Materiais (estoque)"
           subtitulo={`${painel.materiais.total_estoque} item(ns) · ${painel.materiais.total_baixo_estoque} em baixo estoque`}
           icone={Archive}
           destaque={painel.materiais.total_baixo_estoque > 0}
-          aberto={abertoFixo === "materiais"}
-          onToggle={() => setAbertoFixo(abertoFixo === "materiais" ? null : "materiais")}
         >
           <ListaEstoque itens={itensEstoque} />
-        </CardExpansivel>
+        </Card>
 
         {painel.funcionarios.map((f) => (
-          <CardExpansivel
+          <Card
             key={f.funcionario.id}
             titulo={f.funcionario.nome_completo}
             subtitulo={`${f.funcionario.cargo} · ${f.total_itens} item(ns) na mão`}
             icone={User}
-            aberto={abertoFuncionario === f.funcionario.id}
-            onToggle={() => setAbertoFuncionario(abertoFuncionario === f.funcionario.id ? null : f.funcionario.id)}
           >
             {f.total_itens === 0 ? (
               <p className="text-sm text-gray-400 italic">Nenhum item no momento.</p>
@@ -117,45 +107,38 @@ export default function DashboardPage() {
                 {f.pecas.length > 0 && <ListaEstoque titulo="Peças de reposição" itens={f.pecas} />}
               </div>
             )}
-          </CardExpansivel>
+          </Card>
         ))}
       </div>
     </div>
   )
 }
 
-function CardExpansivel({
+function Card({
   titulo,
   subtitulo,
   icone: Icone,
-  aberto,
-  onToggle,
   destaque,
   children,
 }: {
   titulo: string
   subtitulo: string
   icone: LucideIcon
-  aberto: boolean
-  onToggle: () => void
   destaque?: boolean
   children: React.ReactNode
 }) {
   return (
     <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
-      <button onClick={onToggle} className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-full" style={{ backgroundColor: destaque ? ALERTA_BG : VERDE_BG }}>
-            <Icone className="h-5 w-5" style={{ color: destaque ? ALERTA : VERDE }} />
-          </div>
-          <div>
-            <p className="font-semibold" style={{ color: VERDE_ESCURO }}>{titulo}</p>
-            <p className="text-xs text-gray-500">{subtitulo}</p>
-          </div>
+      <div className="flex items-center gap-3 p-4">
+        <div className="p-2 rounded-full" style={{ backgroundColor: destaque ? ALERTA_BG : VERDE_BG }}>
+          <Icone className="h-5 w-5" style={{ color: destaque ? ALERTA : VERDE }} />
         </div>
-        {aberto ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-      </button>
-      {aberto && <div className="border-t border-gray-100 p-4 max-h-80 overflow-y-auto">{children}</div>}
+        <div>
+          <p className="font-semibold" style={{ color: VERDE_ESCURO }}>{titulo}</p>
+          <p className="text-xs text-gray-500">{subtitulo}</p>
+        </div>
+      </div>
+      <div className="border-t border-gray-100 p-4 max-h-80 overflow-y-auto">{children}</div>
     </div>
   )
 }
