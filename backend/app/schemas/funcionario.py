@@ -13,6 +13,7 @@ class FuncionarioBase(BaseModel):
 
 class FuncionarioCreate(FuncionarioBase):
     login: str
+    senha_provisoria: str
 
 class FuncionarioUpdate(BaseModel):
     nome_completo: str | None = None

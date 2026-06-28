@@ -1,4 +1,3 @@
-import secrets
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,7 +7,7 @@ from app.dependencies import get_current_user, require_role
 from app.models.funcionario import Funcionario, RoleFuncionario
 from app.schemas.funcionario import FuncionarioCreate, FuncionarioUpdate, FuncionarioOut
 from app.utils.security import gerar_hash_senha
-from app.services.email_service import EmailService
+from app.services.senha_service import _validar_senha
 
 router = APIRouter(prefix="/api/funcionarios", tags=["funcionarios"])
 
@@ -27,16 +26,15 @@ async def criar(dados: FuncionarioCreate, db: AsyncSession = Depends(get_db)):
     if existente.scalar_one_or_none():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Login, CPF ou e-mail já cadastrado")
 
-    senha_temporaria = secrets.token_urlsafe(8)
+    _validar_senha(dados.senha_provisoria)
     novo = Funcionario(
-        **dados.model_dump(exclude={"role"}),
+        **dados.model_dump(exclude={"role", "senha_provisoria"}),
         role=dados.role,
-        senha_hash=gerar_hash_senha(senha_temporaria),
+        senha_hash=gerar_hash_senha(dados.senha_provisoria),
         deve_trocar_senha=True,
     )
     db.add(novo)
     await db.commit()
-    await EmailService().enviar_credenciais_iniciais(novo.email, novo.nome_completo, novo.login, senha_temporaria)
     return novo
 
 
