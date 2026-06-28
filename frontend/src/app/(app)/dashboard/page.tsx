@@ -75,7 +75,7 @@ export default function DashboardPage() {
           aberto={abertoFixo === "deposito"}
           onToggle={() => setAbertoFixo(abertoFixo === "deposito" ? null : "deposito")}
         >
-          <ListaAtivos ativos={painel.deposito.ativos} />
+          <ListaAtivos ativos={painel.deposito.ativos} compacto />
         </CardExpansivel>
 
         <CardExpansivel
@@ -85,7 +85,7 @@ export default function DashboardPage() {
           aberto={abertoFixo === "manutencao"}
           onToggle={() => setAbertoFixo(abertoFixo === "manutencao" ? null : "manutencao")}
         >
-          <ListaAtivos ativos={painel.manutencao.ativos} />
+          <ListaAtivos ativos={painel.manutencao.ativos} compacto />
         </CardExpansivel>
 
         <CardExpansivel
