@@ -10,3 +10,8 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 @router.get("/resumo")
 async def resumo(db: AsyncSession = Depends(get_db), usuario=Depends(get_current_user)):
     return await DashboardService(db).resumo()
+
+
+@router.get("/painel")
+async def painel(db: AsyncSession = Depends(get_db), usuario=Depends(get_current_user)):
+    return await DashboardService(db).painel()
