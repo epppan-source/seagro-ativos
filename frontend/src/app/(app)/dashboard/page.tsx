@@ -112,7 +112,7 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-400 italic">Nenhum item no momento.</p>
             ) : (
               <div className="space-y-3">
-                {f.ativos.length > 0 && <ListaAtivos titulo="Ativos" ativos={f.ativos} />}
+                {f.ativos.length > 0 && <ListaAtivos titulo="Ativos" ativos={f.ativos} compacto />}
                 {f.materiais.length > 0 && <ListaEstoque titulo="Materiais" itens={f.materiais} />}
                 {f.pecas.length > 0 && <ListaEstoque titulo="Peças de reposição" itens={f.pecas} />}
               </div>
@@ -160,7 +160,15 @@ function CardExpansivel({
   )
 }
 
-function ListaAtivos({ titulo, ativos }: { titulo?: string; ativos: AtivoResumo[] }) {
+function ListaAtivos({
+  titulo,
+  ativos,
+  compacto,
+}: {
+  titulo?: string
+  ativos: AtivoResumo[]
+  compacto?: boolean
+}) {
   if (ativos.length === 0) return <p className="text-sm text-gray-400 italic">Nenhum ativo.</p>
   return (
     <div>
@@ -168,8 +176,14 @@ function ListaAtivos({ titulo, ativos }: { titulo?: string; ativos: AtivoResumo[
       <ul className="space-y-1 text-sm">
         {ativos.map((a) => (
           <li key={a.id} className="flex justify-between border-b py-1">
-            <span>{a.codigo_interno} — {a.marca} {a.modelo}</span>
-            <span className="text-gray-400 text-xs">{a.categoria}</span>
+            {compacto ? (
+              <span className="font-medium">{a.codigo_interno} — {a.modelo}</span>
+            ) : (
+              <>
+                <span>{a.codigo_interno} — {a.marca} {a.modelo}</span>
+                <span className="text-gray-400 text-xs">{a.categoria}</span>
+              </>
+            )}
           </li>
         ))}
       </ul>
