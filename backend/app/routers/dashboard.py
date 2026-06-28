@@ -14,4 +14,4 @@ async def resumo(db: AsyncSession = Depends(get_db), usuario=Depends(get_current
 
 @router.get("/painel")
 async def painel(db: AsyncSession = Depends(get_db), usuario=Depends(get_current_user)):
-    return await DashboardService(db).painel()
+    return await DashboardService(db).painel(usuario_logado_id=usuario.id)

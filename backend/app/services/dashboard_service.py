@@ -77,12 +77,14 @@ class DashboardService:
             "baixo_estoque": p.quantidade_atual <= p.quantidade_minima,
         }
 
-    async def painel(self):
+    async def painel(self, usuario_logado_id=None):
         """Visão do Dashboard agrupada por 'onde o ativo está': Depósito, cada
         Funcionário (com seus ativos + materiais + peças de reposição na mão),
         Manutenção e Materiais/Peças em estoque no depósito (sem responsável).
         Decisão Pancini 2026-06-26 (Proposta A) — ver memória
         projeto_dashboard_cards_por_responsavel.md.
+        O proprietário (usuário logado) não recebe card de funcionário —
+        decisão Pancini 2026-06-27.
         """
         deposito_ativos = (await self.db.execute(
             select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.NO_DEPOSITO).order_by(Ativo.modelo)
@@ -104,8 +106,11 @@ class DashboardService:
             select(PecaReposicao).where(PecaReposicao.ativo == True, PecaReposicao.responsavel_id.is_(None)).order_by(PecaReposicao.nome)
         )).scalars().all()
 
+        funcionarios_query = select(Funcionario).where(Funcionario.ativo == True)
+        if usuario_logado_id is not None:
+            funcionarios_query = funcionarios_query.where(Funcionario.id != usuario_logado_id)
         funcionarios = (await self.db.execute(
-            select(Funcionario).where(Funcionario.ativo == True).order_by(Funcionario.nome_completo)
+            funcionarios_query.order_by(Funcionario.nome_completo)
         )).scalars().all()
 
         ativos_func = (await self.db.execute(
