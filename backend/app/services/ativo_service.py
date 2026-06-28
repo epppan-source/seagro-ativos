@@ -59,6 +59,7 @@ class AtivoService:
             query = query.where(Ativo.status == status_filtro)
         if responsavel_id:
             query = query.where(Ativo.responsavel_id == responsavel_id)
+        query = query.order_by(Ativo.modelo, Ativo.codigo_interno)
         result = await self.db.execute(query)
         return result.scalars().all()
 
