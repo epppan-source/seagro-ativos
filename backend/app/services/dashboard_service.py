@@ -87,11 +87,13 @@ class DashboardService:
         decisão Pancini 2026-06-27.
         """
         deposito_ativos = (await self.db.execute(
-            select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.NO_DEPOSITO).order_by(Ativo.modelo)
+            select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.NO_DEPOSITO)
+            .order_by(Ativo.modelo, Ativo.codigo_interno)
         )).scalars().all()
 
         manutencao_ativos = (await self.db.execute(
-            select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.EM_MANUTENCAO).order_by(Ativo.modelo)
+            select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.EM_MANUTENCAO)
+            .order_by(Ativo.modelo, Ativo.codigo_interno)
         )).scalars().all()
 
         manutencoes_agendadas = (await self.db.execute(
@@ -115,6 +117,7 @@ class DashboardService:
 
         ativos_func = (await self.db.execute(
             select(Ativo).where(Ativo.ativo == True, Ativo.responsavel_id.isnot(None))
+            .order_by(Ativo.modelo, Ativo.codigo_interno)
         )).scalars().all()
         ativos_por_func: dict = {}
         for a in ativos_func:
