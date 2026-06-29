@@ -616,7 +616,22 @@ export default function AtivosPage() {
             )}
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">{editandoId ? "Responsável" : "Responsavel inicial (opcional)"}</label>
-              <select value={form.responsavel_id} onChange={(e) => atualizarCampo("responsavel_id", e.target.value)}
+              <select value={form.responsavel_id} onChange={(e) => {
+                const novoResponsavel = e.target.value
+                setForm((f) => ({
+                  ...f,
+                  responsavel_id: novoResponsavel,
+                  // Ao atribuir um responsável, o status acompanha automaticamente para
+                  // "Com Funcionário" -- evita a combinação inconsistente de status
+                  // "No Depósito"/"Em Manutenção" com um responsável preenchido.
+                  // Ao tirar o responsável (volta pra "Fica no deposito"), só
+                  // devolve o status para "No Depósito" se ele estava em "Com
+                  // Funcionário" -- não interfere em Em Manutenção/Inativo.
+                  status: novoResponsavel
+                    ? "NA_MAO_FUNCIONARIO"
+                    : f.status === "NA_MAO_FUNCIONARIO" ? "NO_DEPOSITO" : f.status,
+                }))
+              }}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 <option value="">Fica no deposito</option>
                 {funcionarios.map((f) => (
