@@ -136,6 +136,8 @@ export default function AtivosPage() {
   const [novoTipoNome, setNovoTipoNome] = useState("")
   const [salvandoTipo, setSalvandoTipo] = useState(false)
 
+  const [filtroStatus, setFiltroStatus] = useState<string | null>(null)
+
   function carregarAtivos() {
     api.get("/api/ativos").then((res) => setAtivos(res.data)).catch(() => {})
   }
@@ -390,6 +392,18 @@ export default function AtivosPage() {
     }
   }
 
+  const totalAtivos = ativos.length
+  const valorTotal = ativos.reduce((soma, a) => soma + (parseFloat(a.valor || "0") || 0), 0)
+  const valorTotalFormatado = valorTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+  const contagemPorStatus: Record<string, number> = {}
+  for (const a of ativos) {
+    contagemPorStatus[a.status] = (contagemPorStatus[a.status] || 0) + 1
+  }
+  const statusParaExibir = ["NA_MAO_FUNCIONARIO", "NO_DEPOSITO", "EM_MANUTENCAO", "INATIVO"].filter(
+    (s) => s !== "INATIVO" || (contagemPorStatus["INATIVO"] || 0) > 0
+  )
+  const ativosFiltrados = filtroStatus ? ativos.filter((a) => a.status === filtroStatus) : ativos
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -400,6 +414,34 @@ export default function AtivosPage() {
         >
           {mostrarForm ? "Cancelar" : "+ Novo Ativo"}
         </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        <button
+          onClick={() => setFiltroStatus(null)}
+          className={`text-left bg-white rounded-lg shadow p-3 border-2 transition ${filtroStatus === null ? "border-seagro" : "border-transparent hover:border-gray-200"}`}
+        >
+          <p className="text-xs text-gray-500">Total de ativos</p>
+          <p className="text-xl font-medium text-gray-800">{totalAtivos}</p>
+        </button>
+        <div className="text-left bg-white rounded-lg shadow p-3 border-2 border-transparent">
+          <p className="text-xs text-gray-500">Valor total do parque</p>
+          <p className="text-xl font-medium text-gray-800">{valorTotalFormatado}</p>
+        </div>
+        {statusParaExibir.map((s) => {
+          const cfg = STATUS_CONFIG[s] || { label: s, color: "bg-gray-100 text-gray-600" }
+          const ativo = filtroStatus === s
+          return (
+            <button
+              key={s}
+              onClick={() => setFiltroStatus(ativo ? null : s)}
+              className={`text-left bg-white rounded-lg shadow p-3 border-2 transition ${ativo ? "border-seagro" : "border-transparent hover:border-gray-200"}`}
+            >
+              <p className="text-xs text-gray-500">{cfg.label}</p>
+              <p className="text-xl font-medium text-gray-800">{contagemPorStatus[s] || 0}</p>
+            </button>
+          )
+        })}
       </div>
 
       {sucesso && (
@@ -662,7 +704,7 @@ export default function AtivosPage() {
             </tr>
           </thead>
           <tbody>
-            {ativos.map((a) => {
+            {ativosFiltrados.map((a) => {
               const cfg = STATUS_CONFIG[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" }
               return (
                 <tr key={a.id} className="border-t hover:bg-gray-50">
@@ -686,8 +728,10 @@ export default function AtivosPage() {
                 </tr>
               )
             })}
-            {ativos.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nenhum ativo cadastrado ainda.</td></tr>
+            {ativosFiltrados.length === 0 && (
+              <tr><td colSpan={6} className="p-6 text-center text-gray-400">
+                {ativos.length === 0 ? "Nenhum ativo cadastrado ainda." : "Nenhum ativo com este status."}
+              </td></tr>
             )}
           </tbody>
         </table>
