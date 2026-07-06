@@ -1,7 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
 
 class MaterialBase(BaseModel):
     nome: str
@@ -11,9 +12,11 @@ class MaterialBase(BaseModel):
     quantidade_minima: Decimal = Decimal("0")
     responsavel_id: uuid.UUID | None = None
 
+
 class MaterialCreate(MaterialBase):
     codigo: str
     quantidade_atual: Decimal = Decimal("0")
+
 
 class MaterialUpdate(BaseModel):
     nome: str | None = None
@@ -22,10 +25,6 @@ class MaterialUpdate(BaseModel):
     responsavel_id: uuid.UUID | None = None
     ativo: bool | None = None
 
-class MaterialMovimento(BaseModel):
-    quantidade: Decimal
-    tipo: str  # ENTRADA ou SAIDA
-    observacao: str | None = None
 
 class MaterialOut(MaterialBase):
     model_config = ConfigDict(from_attributes=True)
@@ -36,3 +35,31 @@ class MaterialOut(MaterialBase):
     ativo: bool
     created_at: datetime
     updated_at: datetime
+
+
+class MaterialMovimentoCreate(BaseModel):
+    quantidade: Decimal
+    tipo: str  # ENTRADA ou SAIDA
+    data: date = date.today()
+    ativo_id: uuid.UUID | None = None
+    observacao: str | None = None
+
+    @field_validator("tipo")
+    @classmethod
+    def validar_tipo(cls, v: str) -> str:
+        if v not in ("ENTRADA", "SAIDA"):
+            raise ValueError("tipo deve ser ENTRADA ou SAIDA")
+        return v
+
+
+class MaterialMovimentoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    material_id: uuid.UUID
+    tipo: str
+    quantidade: Decimal
+    data: date
+    ativo_id: uuid.UUID | None = None
+    observacao: str | None = None
+    registrado_por_id: uuid.UUID | None = None
+    created_at: datetime

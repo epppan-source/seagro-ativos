@@ -19,7 +19,20 @@ async def migrar():
         await conn.execute(text("ALTER TABLE ativos ADD COLUMN IF NOT EXISTS data_revisao_prevista DATE"))
         await conn.execute(text("ALTER TABLE ativos ADD COLUMN IF NOT EXISTS aposentado_em DATE"))
         await conn.execute(text("ALTER TABLE ativos ADD COLUMN IF NOT EXISTS motivo_aposentadoria TEXT"))
-    print("OK: colunas data_revisao_prevista, aposentado_em, motivo_aposentadoria confirmadas em ativos.")
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS material_movimentos (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                material_id UUID NOT NULL REFERENCES materiais(id),
+                tipo VARCHAR(10) NOT NULL,
+                quantidade NUMERIC(12, 2) NOT NULL,
+                data DATE NOT NULL DEFAULT CURRENT_DATE,
+                ativo_id UUID REFERENCES ativos(id),
+                observacao TEXT,
+                registrado_por_id UUID REFERENCES funcionarios(id),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+    print("OK: colunas ativos + tabela material_movimentos confirmadas.")
 
 
 if __name__ == "__main__":

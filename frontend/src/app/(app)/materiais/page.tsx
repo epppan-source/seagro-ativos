@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
-import { Pencil } from "lucide-react"
+import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
 import FotoUpload from "@/components/FotoUpload"
 
 interface Material {
@@ -27,6 +27,20 @@ interface Funcionario {
   nome_completo: string
 }
 
+interface Ativo {
+  id: string
+  codigo_interno: string
+}
+
+interface Movimento {
+  id: string
+  tipo: string
+  quantidade: number
+  data: string
+  ativo_id: string | null
+  observacao: string | null
+}
+
 interface FormState {
   nome: string
   codigo: string
@@ -49,9 +63,26 @@ const FORM_INICIAL: FormState = {
   responsavel_id: "",
 }
 
+interface MovForm {
+  tipo: "ENTRADA" | "SAIDA"
+  quantidade: string
+  data: string
+  ativo_id: string
+  observacao: string
+}
+
+const MOV_INICIAL: MovForm = {
+  tipo: "SAIDA",
+  quantidade: "",
+  data: new Date().toISOString().slice(0, 10),
+  ativo_id: "",
+  observacao: "",
+}
+
 export default function MateriaisPage() {
   const [materiais, setMateriais] = useState<Material[]>([])
   const [tipos, setTipos] = useState<Tipo[]>([])
+  const [ativos, setAtivos] = useState<Ativo[]>([])
   const [role, setRole] = useState<string | null>(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm] = useState<FormState>(FORM_INICIAL)
@@ -66,12 +97,24 @@ export default function MateriaisPage() {
   const [salvandoTipo, setSalvandoTipo] = useState(false)
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
 
+  const [movMaterialId, setMovMaterialId] = useState<string | null>(null)
+  const [movForm, setMovForm] = useState<MovForm>(MOV_INICIAL)
+  const [movSalvando, setMovSalvando] = useState(false)
+  const [movErro, setMovErro] = useState("")
+
+  const [historicoMaterialId, setHistoricoMaterialId] = useState<string | null>(null)
+  const [historico, setHistorico] = useState<Movimento[]>([])
+
   function carregarMateriais() {
     api.get("/api/materiais").then((res) => setMateriais(res.data)).catch(() => {})
   }
 
   function carregarTipos() {
     api.get("/api/tipos/material").then((res) => setTipos(res.data)).catch(() => {})
+  }
+
+  function carregarAtivos() {
+    api.get("/api/ativos").then((res) => setAtivos(res.data)).catch(() => {})
   }
 
   function carregarFuncionarios() {
@@ -82,6 +125,7 @@ export default function MateriaisPage() {
     setRole(getRole())
     carregarMateriais()
     carregarTipos()
+    carregarAtivos()
     carregarFuncionarios()
   }, [])
 
@@ -188,6 +232,60 @@ export default function MateriaisPage() {
     }
   }
 
+  function abrirMovimento(materialId: string, tipo: "ENTRADA" | "SAIDA") {
+    setMovMaterialId(materialId)
+    setMovForm({ ...MOV_INICIAL, tipo })
+    setMovErro("")
+    setHistoricoMaterialId(null)
+  }
+
+  function cancelarMovimento() {
+    setMovMaterialId(null)
+    setMovForm(MOV_INICIAL)
+    setMovErro("")
+  }
+
+  async function salvarMovimento(e: React.FormEvent) {
+    e.preventDefault()
+    if (!movMaterialId) return
+    setMovErro("")
+
+    if (!movForm.quantidade || Number(movForm.quantidade) <= 0) {
+      setMovErro("Informe uma quantidade válida.")
+      return
+    }
+
+    setMovSalvando(true)
+    try {
+      await api.post(`/api/materiais/${movMaterialId}/movimento`, {
+        tipo: movForm.tipo,
+        quantidade: movForm.quantidade,
+        data: movForm.data,
+        ativo_id: movForm.ativo_id || null,
+        observacao: movForm.observacao || null,
+      })
+      cancelarMovimento()
+      carregarMateriais()
+    } catch (err: any) {
+      setMovErro(err?.response?.data?.detail || "Erro ao registrar movimento.")
+    } finally {
+      setMovSalvando(false)
+    }
+  }
+
+  function abrirHistorico(materialId: string) {
+    setHistoricoMaterialId(materialId)
+    setMovMaterialId(null)
+    api.get(`/api/materiais/${materialId}/movimentos`)
+      .then((res) => setHistorico(res.data))
+      .catch(() => setHistorico([]))
+  }
+
+  function ativoLabel(ativoId: string | null) {
+    if (!ativoId) return "-"
+    return ativos.find((a) => a.id === ativoId)?.codigo_interno || ativoId
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -221,7 +319,7 @@ export default function MateriaisPage() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Codigo</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Código</label>
               <input required disabled={!!editandoId} value={form.codigo} onChange={(e) => atualizarCampo("codigo", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
@@ -262,16 +360,18 @@ export default function MateriaisPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade atual{editandoId ? " (ajuste pelo Movimento)" : ""}</label>
-              <input required disabled={!!editandoId} type="number" step="0.01" value={form.quantidade_atual} onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
+              <input required disabled={!!editandoId} type="number" step="0.01" value={form.quantidade_atual}
+                onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade minima</label>
-              <input required type="number" step="0.01" value={form.quantidade_minima} onChange={(e) => atualizarCampo("quantidade_minima", e.target.value)}
+              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade mínima</label>
+              <input required type="number" step="0.01" value={form.quantidade_minima}
+                onChange={(e) => atualizarCampo("quantidade_minima", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Descricao (opcional)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Descrição (opcional)</label>
               <input value={form.descricao} onChange={(e) => atualizarCampo("descricao", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
@@ -290,7 +390,7 @@ export default function MateriaisPage() {
           </div>
           <button disabled={salvando} type="submit"
             className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
-            {salvando ? "Salvando..." : editandoId ? "Salvar alteracoes" : "Salvar"}
+            {salvando ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar"}
           </button>
         </form>
       )}
@@ -306,8 +406,20 @@ export default function MateriaisPage() {
                   {m.foto_url && <img src={m.foto_url} alt={m.nome} className="w-7 h-7 rounded object-cover" />}
                   {m.nome} <span className="text-gray-400 text-xs">({m.codigo})</span>
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                   <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
+                  <button onClick={() => historicoMaterialId === m.id ? setHistoricoMaterialId(null) : abrirHistorico(m.id)}
+                    className="flex items-center gap-1 text-xs text-gray-600 border border-gray-300 bg-gray-50 px-2 py-1 rounded hover:bg-gray-100">
+                    <History size={12} /> Histórico
+                  </button>
+                  <button onClick={() => abrirMovimento(m.id, "ENTRADA")}
+                    className="flex items-center gap-1 text-xs text-green-700 border border-green-300 bg-green-50 px-2 py-1 rounded hover:bg-green-100">
+                    <ArrowDownCircle size={12} /> Entrada
+                  </button>
+                  <button onClick={() => abrirMovimento(m.id, "SAIDA")}
+                    className="flex items-center gap-1 text-xs text-orange-700 border border-orange-300 bg-orange-50 px-2 py-1 rounded hover:bg-orange-100">
+                    <ArrowUpCircle size={12} /> Saída
+                  </button>
                   {role === "gestor" && (
                     <button onClick={() => abrirEdicao(m)}
                       className="flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
@@ -319,6 +431,77 @@ export default function MateriaisPage() {
               <div className="bg-gray-200 rounded-full h-2">
                 <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
               </div>
+
+              {movMaterialId === m.id && (
+                <form onSubmit={salvarMovimento} className="mt-3 border-t pt-3 space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-700">
+                    {movForm.tipo === "ENTRADA" ? "Registrar entrada no estoque" : "Registrar saída do estoque"}
+                  </h3>
+                  {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade</label>
+                      <input required type="number" step="0.01" value={movForm.quantidade}
+                        onChange={(e) => setMovForm((f) => ({ ...f, quantidade: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
+                      <input required type="date" value={movForm.data}
+                        onChange={(e) => setMovForm((f) => ({ ...f, data: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        {movForm.tipo === "SAIDA" ? "Ativo destino (opcional)" : "Ativo de origem (opcional)"}
+                      </label>
+                      <select value={movForm.ativo_id} onChange={(e) => setMovForm((f) => ({ ...f, ativo_id: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                        <option value="">Sem ativo / uso geral</option>
+                        {ativos.map((a) => (
+                          <option key={a.id} value={a.id}>{a.codigo_interno}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Observação (opcional)</label>
+                      <input value={movForm.observacao} onChange={(e) => setMovForm((f) => ({ ...f, observacao: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button disabled={movSalvando} type="submit"
+                      className="bg-seagro text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
+                      {movSalvando ? "Salvando..." : "Confirmar"}
+                    </button>
+                    <button type="button" onClick={cancelarMovimento}
+                      className="text-xs px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {historicoMaterialId === m.id && (
+                <div className="mt-3 border-t pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold text-gray-700">Histórico de movimentações</h3>
+                    <button onClick={() => setHistoricoMaterialId(null)} className="text-xs text-gray-500 hover:underline">Fechar</button>
+                  </div>
+                  {historico.length === 0 && <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>}
+                  <ul className="space-y-1">
+                    {historico.map((mov) => (
+                      <li key={mov.id} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 pb-1">
+                        <span>
+                          {new Date(mov.data).toLocaleDateString("pt-BR")} — {mov.tipo === "ENTRADA" ? "Entrada" : "Saída"} de {mov.quantidade} {m.unidade}
+                          {mov.ativo_id ? ` → ${ativoLabel(mov.ativo_id)}` : ""}
+                          {mov.observacao ? ` (${mov.observacao})` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )
         })}
