@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import { getRole, clearSession } from "@/lib/auth"
 import {
-  LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive, Users, LogOut, Cog,
+  LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive, Users, LogOut, Cog, FileText,
 } from "lucide-react"
 
 const NAV_GESTOR = [
@@ -14,6 +14,7 @@ const NAV_GESTOR = [
   { label: "Materiais", href: "/materiais", icon: Archive },
   { label: "Peças de Reposição", href: "/pecas", icon: Cog },
   { label: "Funcionários", href: "/funcionarios", icon: Users },
+  { label: "Termos", href: "/termos", icon: FileText },
 ]
 
 const NAV_FUNCIONARIO = [
@@ -60,11 +61,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-        <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-3 m-2 rounded text-sm hover:bg-white/10">
-          <LogOut className="h-4 w-4" /> Sair
-        </button>
-      </aside>
-      <main className="flex-1 bg-gray-50 p-6">{children}</main>
-    </div>
-  )
-}
+        <button onClick={handleLogout} classNam
