@@ -61,4 +61,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-        <button onClick={handleLogout} classNam
+        <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-3 m-2 rounded text-sm hover:bg-white/10">
+          <LogOut className="h-4 w-4" /> Sair
+        </button>
+      </aside>
+      <main className="flex-1 bg-gray-50 p-6">{children}</main>
+    </div>
+  )
+}
