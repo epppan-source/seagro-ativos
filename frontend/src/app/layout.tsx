@@ -15,13 +15,40 @@ const openSans = Open_Sans({
 
 export const metadata: Metadata = {
   title: "SEAGRO Ativos",
-  description: "Sistema de Gestão de Ativos - SEAGRO",
+  description: "Sistema de Gestão de Ativos - SEAGRO Soluções Ambientais",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SEAGRO Ativos",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${montserrat.variable} ${openSans.variable} font-sans`}>{children}</body>
+      <head>
+        <meta name="theme-color" content="#2E7D32" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+      </head>
+      <body className={`${montserrat.variable} ${openSans.variable} font-sans`}>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   )
 }
