@@ -111,7 +111,6 @@ export default function TransferenciasPage() {
 
   return (
     <div>
-      {/* Cabecalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h1 className="text-xl font-bold text-gray-800">Transferencias</h1>
         <button
@@ -128,7 +127,6 @@ export default function TransferenciasPage() {
         </div>
       )}
 
-      {/* Formulario de solicitacao */}
       {mostrarForm && (
         <form onSubmit={solicitar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
           {erro && (
@@ -182,11 +180,9 @@ export default function TransferenciasPage() {
         </form>
       )}
 
-      {/* Lista de transferencias */}
       <div className="space-y-3">
         {lista.map((t) => (
           <div key={t.id} className="bg-white rounded-lg shadow p-4">
-            {/* Info principal */}
             <div className="mb-3">
               <p className="font-medium text-gray-800 text-sm leading-snug">
                 {nomeAtivo(t.ativo_id)}
@@ -203,10 +199,10 @@ export default function TransferenciasPage() {
                 {new Date(t.solicitado_em).toLocaleString("pt-BR")}
               </p>
             </div>
-            {/* Status + acoes */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Status + acoes empilhadas em mobile, lado a lado em sm+ */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                className={`text-xs px-2 py-1 rounded-full font-medium self-start ${
                   STATUS_STYLE[t.status] || "bg-gray-100 text-gray-600"
                 }`}
               >
@@ -216,13 +212,13 @@ export default function TransferenciasPage() {
                 <>
                   <button
                     onClick={() => decidir(t.id, true)}
-                    className="flex-1 sm:flex-none text-sm bg-green-600 text-white px-4 py-2 rounded-lg min-h-[44px] hover:bg-green-700"
+                    className="w-full sm:w-auto text-sm bg-green-600 text-white px-4 py-2 rounded-lg min-h-[44px] hover:bg-green-700"
                   >
                     Aprovar
                   </button>
                   <button
                     onClick={() => decidir(t.id, false)}
-                    className="flex-1 sm:flex-none text-sm bg-red-600 text-white px-4 py-2 rounded-lg min-h-[44px] hover:bg-red-700"
+                    className="w-full sm:w-auto text-sm bg-red-600 text-white px-4 py-2 rounded-lg min-h-[44px] hover:bg-red-700"
                   >
                     Rejeitar
                   </button>

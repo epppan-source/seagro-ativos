@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation"
 import Image from "next/image"
 import { getRole, clearSession } from "@/lib/auth"
 import {
-  LayoutDashboard, Package, Wrench, ArrowRightLeft, Archive,
+  LayoutDashboard, Package, ArrowRightLeft, Archive,
   Users, LogOut, Cog, FileText, Menu, X,
 } from "lucide-react"
 
@@ -26,7 +26,6 @@ const NAV_FUNCIONARIO = [
   { label: "Pecas de Reposicao", href: "/pecas", icon: Cog },
 ]
 
-// Labels com acentos separados para evitar truncamento de encoding
 const LABEL_MAP: Record<string, string> = {
   "Transferencias": "Transferências",
   "Pecas de Reposicao": "Peças de Reposição",
@@ -47,7 +46,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     setRole(getRole())
   }, [])
 
-  // Fecha gaveta ao navegar
   useEffect(() => {
     setDrawerOpen(false)
   }, [pathname])
@@ -89,33 +87,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
-
-      {/* ---- SIDEBAR DESKTOP (md+) ---- */}
       <aside className="hidden md:flex w-60 bg-seagro-dark text-white flex-col shrink-0">
         <div className="p-4 border-b border-white/10 flex justify-center">
           <div className="bg-white rounded-md px-3 py-2">
-            <Image
-              src="/logo-seagro.jpg"
-              alt="SEAGRO"
-              width={160}
-              height={37}
-              className="h-7 w-auto"
-              priority
-            />
+            <Image src="/logo-seagro.jpg" alt="SEAGRO" width={160} height={37} className="h-7 w-auto" priority />
           </div>
         </div>
         <NavLinks />
       </aside>
 
-      {/* ---- GAVETA MOBILE (< md) ---- */}
-      {/* Overlay */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setDrawerOpen(false)}
         />
       )}
-      {/* Gaveta */}
       <aside
         className={`fixed top-0 left-0 h-full w-72 max-w-[80vw] z-50 bg-seagro-dark text-white flex flex-col transition-transform duration-300 md:hidden ${
           drawerOpen ? "translate-x-0" : "-translate-x-full"
@@ -123,14 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <div className="bg-white rounded-md px-3 py-2">
-            <Image
-              src="/logo-seagro.jpg"
-              alt="SEAGRO"
-              width={140}
-              height={32}
-              className="h-7 w-auto"
-              priority
-            />
+            <Image src="/logo-seagro.jpg" alt="SEAGRO" width={140} height={32} className="h-7 w-auto" priority />
           </div>
           <button
             onClick={() => setDrawerOpen(false)}
@@ -142,10 +121,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <NavLinks />
       </aside>
 
-      {/* ---- AREA PRINCIPAL ---- */}
       <div className="flex-1 flex flex-col min-w-0">
-
-        {/* Header fixo mobile */}
         <header className="md:hidden sticky top-0 z-30 bg-seagro-dark text-white flex items-center justify-between px-4 h-14 shrink-0">
           <button
             onClick={() => setDrawerOpen(true)}
@@ -155,18 +131,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5" />
           </button>
           <div className="bg-white rounded-md px-2 py-1">
-            <Image
-              src="/logo-seagro.jpg"
-              alt="SEAGRO"
-              width={120}
-              height={28}
-              className="h-6 w-auto"
-              priority
-            />
+            <Image src="/logo-seagro.jpg" alt="SEAGRO" width={120} height={28} className="h-6 w-auto" priority />
           </div>
           <div className="w-10" />
         </header>
-
         <main className="flex-1 bg-gray-50 p-4 md:p-6 overflow-auto">
           {children}
         </main>
