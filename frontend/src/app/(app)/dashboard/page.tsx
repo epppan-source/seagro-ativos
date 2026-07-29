@@ -59,57 +59,74 @@ export default function DashboardPage() {
 
   if (!painel) return <p className="text-gray-500">Carregando...</p>
 
-  const itensEstoque = [...painel.materiais.materiais, ...painel.materiais.pecas]
-
   return (
-    <div>
-      <h1 className="text-xl font-bold mb-6" style={{ color: VERDE_ESCURO }}>Dashboard</h1>
+    <div className="space-y-8">
+      <h1 className="text-xl font-bold" style={{ color: VERDE_ESCURO }}>Dashboard</h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card
-          titulo="Depósito"
-          subtitulo={`${painel.deposito.total} ativo(s) no depósito`}
-          icone={Warehouse}
-        >
-          <ListaAtivos ativos={painel.deposito.ativos} compacto />
-        </Card>
+      {/* Seção 1 — Quadro de Funcionários */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          Quadro de Funcionários
+        </h2>
+        {painel.funcionarios.length === 0 ? (
+          <p className="text-sm text-gray-400 italic">Nenhum funcionário cadastrado ainda.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {painel.funcionarios.map((f) => (
+              <Card
+                key={f.funcionario.id}
+                titulo={f.funcionario.nome_completo}
+                subtitulo={`${f.funcionario.cargo} · ${f.total_itens} item(ns) na mão`}
+                icone={User}
+              >
+                {f.total_itens === 0 ? (
+                  <p className="text-sm text-gray-400 italic">Nenhum item no momento.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {f.ativos.length > 0 && <ListaAtivos titulo="Ativos" ativos={f.ativos} compacto />}
+                    {f.materiais.length > 0 && <ListaEstoque titulo="Materiais" itens={f.materiais} />}
+                    {f.pecas.length > 0 && <ListaEstoque titulo="Peças de reposição" itens={f.pecas} />}
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
-        <Card
-          titulo="Manutenção"
-          subtitulo={`${painel.manutencao.total} em manutenção · ${painel.manutencao.manutencoes_agendadas} agendada(s)`}
-          icone={Wrench}
-        >
-          <ListaAtivos ativos={painel.manutencao.ativos} compacto />
-        </Card>
-
-        <Card
-          titulo="Materiais (estoque)"
-          subtitulo={`${painel.materiais.total_estoque} item(ns) · ${painel.materiais.total_baixo_estoque} em baixo estoque`}
-          icone={Archive}
-          destaque={painel.materiais.total_baixo_estoque > 0}
-        >
-          <ListaEstoque itens={itensEstoque} />
-        </Card>
-
-        {painel.funcionarios.map((f) => (
+      {/* Seção 2 — Materiais, Peças e Manutenção */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          Materiais, Peças e Manutenção
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card
-            key={f.funcionario.id}
-            titulo={f.funcionario.nome_completo}
-            subtitulo={`${f.funcionario.cargo} · ${f.total_itens} item(ns) na mão`}
-            icone={User}
+            titulo="Materiais"
+            subtitulo={`${painel.materiais.materiais.length} item(ns) · ${painel.materiais.materiais.filter((i) => i.baixo_estoque).length} em baixo estoque`}
+            icone={Archive}
+            destaque={painel.materiais.materiais.some((i) => i.baixo_estoque)}
           >
-            {f.total_itens === 0 ? (
-              <p className="text-sm text-gray-400 italic">Nenhum item no momento.</p>
-            ) : (
-              <div className="space-y-3">
-                {f.ativos.length > 0 && <ListaAtivos titulo="Ativos" ativos={f.ativos} compacto />}
-                {f.materiais.length > 0 && <ListaEstoque titulo="Materiais" itens={f.materiais} />}
-                {f.pecas.length > 0 && <ListaEstoque titulo="Peças de reposição" itens={f.pecas} />}
-              </div>
-            )}
+            <ListaEstoque itens={painel.materiais.materiais} />
           </Card>
-        ))}
-      </div>
+
+          <Card
+            titulo="Peças de reposição"
+            subtitulo={`${painel.materiais.pecas.length} item(ns) · ${painel.materiais.pecas.filter((i) => i.baixo_estoque).length} em baixo estoque`}
+            icone={Warehouse}
+            destaque={painel.materiais.pecas.some((i) => i.baixo_estoque)}
+          >
+            <ListaEstoque itens={painel.materiais.pecas} />
+          </Card>
+
+          <Card
+            titulo="Manutenção"
+            subtitulo={`${painel.manutencao.total} em manutenção · ${painel.manutencao.manutencoes_agendadas} agendada(s)`}
+            icone={Wrench}
+          >
+            <ListaAtivos ativos={painel.manutencao.ativos} compacto />
+          </Card>
+        </div>
+      </section>
     </div>
   )
 }

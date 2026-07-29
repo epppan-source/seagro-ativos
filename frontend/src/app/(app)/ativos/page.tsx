@@ -698,8 +698,9 @@ export default function AtivosPage() {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
-              <th className="p-3">Código</th><th className="p-3">Categoria</th>
-              <th className="p-3">Modelo</th><th className="p-3">Marca</th><th className="p-3">Status</th>
+              <th className="p-3">Modelo</th>
+              <th className="p-3">Código</th>
+              <th className="p-3">Status</th>
               {role === "gestor" && <th className="p-3"></th>}
             </tr>
           </thead>
@@ -708,10 +709,8 @@ export default function AtivosPage() {
               const cfg = STATUS_CONFIG[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" }
               return (
                 <tr key={a.id} className="border-t hover:bg-gray-50">
-                  <td className="p-3 font-medium">{a.codigo_interno}</td>
-                  <td className="p-3">{a.categoria}</td>
-                  <td className="p-3">{a.modelo}</td>
-                  <td className="p-3">{a.marca}</td>
+                  <td className="p-3 font-medium">{a.modelo}</td>
+                  <td className="p-3">{a.codigo_interno}</td>
                   <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>{cfg.label}</span></td>
                   {role === "gestor" && (
                     <td className="p-3 text-right space-x-2 whitespace-nowrap">
@@ -729,7 +728,7 @@ export default function AtivosPage() {
               )
             })}
             {ativosFiltrados.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-400">
+              <tr><td colSpan={4} className="p-6 text-center text-gray-400">
                 {ativos.length === 0 ? "Nenhum ativo cadastrado ainda." : "Nenhum ativo com este status."}
               </td></tr>
             )}
