@@ -694,7 +694,42 @@ export default function AtivosPage() {
         </form>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* ── MOBILE: cards ── */}
+      <div className="md:hidden space-y-2">
+        {ativosFiltrados.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-6 text-center text-gray-400 text-sm">
+            {ativos.length === 0 ? "Nenhum ativo cadastrado ainda." : "Nenhum ativo com este status."}
+          </div>
+        ) : ativosFiltrados.map((a) => {
+          const cfg = STATUS_CONFIG[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" }
+          return (
+            <div key={a.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-800 truncate">{a.modelo}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{a.codigo_interno}</p>
+                </div>
+                <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.color}`}>{cfg.label}</span>
+              </div>
+              {role === "gestor" && (
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button onClick={() => abrirEdicao(a)}
+                    className="flex-1 inline-flex items-center justify-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100 min-h-[36px]">
+                    <Pencil size={13} /> Editar
+                  </button>
+                  <button disabled={aposentandoId === a.id} onClick={() => aposentarAtivo(a)}
+                    className="flex-1 inline-flex items-center justify-center gap-1 text-xs text-red-700 border border-red-300 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100 disabled:opacity-50 min-h-[36px]">
+                    <Archive size={13} /> {aposentandoId === a.id ? "Aposentando..." : "Aposentar"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── DESKTOP: tabela ── */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left text-gray-600">
             <tr>
