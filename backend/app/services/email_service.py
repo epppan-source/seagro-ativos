@@ -112,6 +112,26 @@ class EmailService:
         html = self._renderizar("alerta_manutencao.html", {"ativo_codigo": ativo_codigo, "data_prevista": data_prevista})
         await self._enviar(email_gestor, f"Manutenção próxima - {ativo_codigo}", html)
 
+    async def enviar_solicitacao_baixa(self, email_gestor: str, solicitante_nome: str, item_nome: str, quantidade: float, unidade: str, obra: str):
+        html = self._renderizar("solicitacao_baixa.html", {
+            "solicitante_nome": solicitante_nome, "item_nome": item_nome,
+            "quantidade": quantidade, "unidade": unidade, "obra": obra,
+        })
+        await self._enviar(email_gestor, f"Nova solicitação de baixa - {item_nome}", html)
+
+    async def enviar_baixa_aprovada(self, email: str, nome: str, item_nome: str, quantidade: float, unidade: str, obra: str):
+        html = self._renderizar("baixa_aprovada.html", {
+            "nome": nome, "item_nome": item_nome,
+            "quantidade": quantidade, "unidade": unidade, "obra": obra,
+        })
+        await self._enviar(email, f"Baixa aprovada - {item_nome}", html)
+
+    async def enviar_baixa_rejeitada(self, email: str, nome: str, item_nome: str, motivo: str):
+        html = self._renderizar("baixa_rejeitada.html", {
+            "nome": nome, "item_nome": item_nome, "motivo": motivo,
+        })
+        await self._enviar(email, f"Baixa rejeitada - {item_nome}", html)
+
     async def enviar_alerta_estoque_baixo(self, email_gestor: str, material_nome: str, quantidade_atual, quantidade_minima):
         html = self._renderizar("alerta_estoque_baixo.html", {
             "material_nome": material_nome, "quantidade_atual": quantidade_atual, "quantidade_minima": quantidade_minima,

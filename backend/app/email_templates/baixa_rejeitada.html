@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>Olá, <strong>{{ nome }}</strong>!</p>
+<p>Sua solicitação de baixa para <strong>{{ item_nome }}</strong> foi <strong>rejeitada</strong>.</p>
+<p><strong>Motivo:</strong> {{ motivo }}</p>
+<p>Entre em contato com o gestor para mais informações.</p>
+{% endblock %}

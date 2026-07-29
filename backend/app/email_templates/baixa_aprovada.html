@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>Olá, <strong>{{ nome }}</strong>!</p>
+<p>Sua solicitação de baixa foi <strong>aprovada</strong>.</p>
+<ul>
+  <li><strong>Item:</strong> {{ item_nome }}</li>
+  <li><strong>Quantidade:</strong> {{ quantidade }} {{ unidade }}</li>
+  <li><strong>Obra/Destino:</strong> {{ obra }}</li>
+</ul>
+<p>O estoque foi atualizado automaticamente.</p>
+{% endblock %}

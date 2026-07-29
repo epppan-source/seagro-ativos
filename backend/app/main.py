@@ -6,7 +6,7 @@ import os
 
 from app.config import settings
 from app.services.scheduler import iniciar_scheduler
-from app.routers import auth, funcionarios, tipos, ativos, manutencoes, materiais, transferencias, dashboard, uploads, codigos, pecas
+from app.routers import auth, funcionarios, tipos, ativos, manutencoes, materiais, transferencias, dashboard, uploads, codigos, pecas, baixas
 
 
 @asynccontextmanager
@@ -41,6 +41,7 @@ app.include_router(dashboard.router)
 app.include_router(uploads.router)
 app.include_router(codigos.router)
 app.include_router(pecas.router)
+app.include_router(baixas.router)
 
 
 @app.get("/")
