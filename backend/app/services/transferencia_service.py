@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -33,11 +33,14 @@ class TransferenciaService:
         self.db.add(transferencia)
         await self.db.commit()
 
+        novo_responsavel_obj = await self.db.get(Funcionario, novo_responsavel_id)
+        novo_responsavel_nome = novo_responsavel_obj.nome_completo if novo_responsavel_obj else "—"
+
         result = await self.db.execute(select(Funcionario).where(Funcionario.role == RoleFuncionario.gestor))
         for gestor in result.scalars().all():
             await self.email_service.enviar_solicitacao_transferencia(
                 gestor.email, gestor.nome_completo, ativo.codigo_interno,
-                solicitante.nome_completo, "novo responsável", motivo,
+                solicitante.nome_completo, novo_responsavel_nome, motivo,
             )
 
         await registrar_auditoria(self.db, solicitante.id, "transferencias", "CREATE", transferencia.id)
@@ -60,9 +63,28 @@ class TransferenciaService:
         if aprovar:
             transferencia.status = StatusTransferencia.APROVADA
             transferencia.concluido_em = datetime.utcnow()
+
+            responsavel_anterior_obj = await self.db.get(Funcionario, transferencia.responsavel_atual_id)
+            responsavel_anterior_nome = responsavel_anterior_obj.nome_completo if responsavel_anterior_obj else "Depósito"
+            data_hora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y às %H:%M")
+
             ativo.responsavel_id = novo_responsavel.id
             ativo.status = StatusAtivo.NA_MAO_FUNCIONARIO
-            await self.email_service.enviar_transferencia_aprovada(solicitante.email, solicitante.nome_completo, ativo.codigo_interno)
+
+            await self.email_service.enviar_transferencia_aprovada(
+                solicitante.email, solicitante.nome_completo, ativo.codigo_interno,
+                ativo.modelo, novo_responsavel.nome_completo, data_hora,
+            )
+            await self.email_service.enviar_transferencia_novo_responsavel(
+                novo_responsavel.email, novo_responsavel.nome_completo,
+                ativo.codigo_interno, ativo.modelo, responsavel_anterior_nome, data_hora,
+            )
+            result_gestores = await self.db.execute(select(Funcionario).where(Funcionario.role == RoleFuncionario.gestor))
+            for gestor in result_gestores.scalars().all():
+                await self.email_service.enviar_transferencia_aprovada_gestor(
+                    gestor.email, gestor.nome_completo, ativo.codigo_interno,
+                    ativo.modelo, responsavel_anterior_nome, novo_responsavel.nome_completo, data_hora,
+                )
         else:
             transferencia.status = StatusTransferencia.REJEITADA
             transferencia.motivo_rejeicao = motivo_rejeicao

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -150,6 +150,7 @@ async def decidir(
             ))
 
         baixa.status = StatusBaixa.APROVADA
+        data_hora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y às %H:%M")
         try:
             await EmailService().enviar_baixa_aprovada(
                 email=baixa.solicitante.email,
@@ -158,6 +159,20 @@ async def decidir(
                 quantidade=float(baixa.quantidade),
                 unidade=item.unidade,
                 obra=baixa.obra,
+                data_hora=data_hora,
+            )
+        except Exception:
+            pass
+        try:
+            await EmailService().enviar_baixa_aprovada_gestor(
+                email_gestor=settings.GESTOR_EMAIL,
+                nome_gestor="Gestor",
+                item_nome=item.nome,
+                quantidade=float(baixa.quantidade),
+                unidade=item.unidade,
+                obra=baixa.obra,
+                solicitante_nome=baixa.solicitante.nome_completo,
+                data_hora=data_hora,
             )
         except Exception:
             pass

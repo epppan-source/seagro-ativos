@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<p>Olá, <strong>{{ nome_gestor }}</strong>!</p>
+<p>Você aprovou a transferência do ativo <strong>{{ ativo_codigo }} — {{ ativo_modelo }}</strong>.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
+  <tr><td style="padding:6px 0;color:#555;width:140px;">De:</td><td style="padding:6px 0;font-weight:bold;">{{ responsavel_anterior }}</td></tr>
+  <tr><td style="padding:6px 0;color:#555;">Para:</td><td style="padding:6px 0;font-weight:bold;">{{ novo_responsavel }}</td></tr>
+  <tr><td style="padding:6px 0;color:#555;">Data:</td><td style="padding:6px 0;">{{ data_hora }}</td></tr>
+</table>
+<p style="color:#888;font-size:12px;margin-top:24px;">Este e-mail foi gerado automaticamente pelo Sistema de Controle de Ativos SEAGRO.</p>
+{% endblock %}

@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% block conteudo %}
-<p>Olá, <strong>{{ nome }}</strong>!</p>
-<p>Sua solicitação de baixa foi <strong>aprovada</strong>.</p>
+<p>Olá, <strong>{{ nome_gestor }}</strong>!</p>
+<p>Você aprovou a seguinte baixa de estoque:</p>
 <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
   <tr><td style="padding:6px 0;color:#555;width:140px;">Item:</td><td style="padding:6px 0;font-weight:bold;">{{ item_nome }}</td></tr>
   <tr><td style="padding:6px 0;color:#555;">Quantidade:</td><td style="padding:6px 0;">{{ quantidade }} {{ unidade }}</td></tr>
   <tr><td style="padding:6px 0;color:#555;">Obra/Destino:</td><td style="padding:6px 0;">{{ obra }}</td></tr>
+  <tr><td style="padding:6px 0;color:#555;">Solicitado por:</td><td style="padding:6px 0;">{{ solicitante_nome }}</td></tr>
   <tr><td style="padding:6px 0;color:#555;">Data:</td><td style="padding:6px 0;">{{ data_hora }}</td></tr>
 </table>
 <p>O estoque foi atualizado automaticamente.</p>
-<p style="color:#888;font-size:12px;margin-top:24px;">Este e-mail foi gerado automaticamente pelo Sistema de Controle de Ativos SEAGRO. Em caso de dúvidas, entre em contato com o gestor.</p>
+<p style="color:#888;font-size:12px;margin-top:24px;">Este e-mail foi gerado automaticamente pelo Sistema de Controle de Ativos SEAGRO.</p>
 {% endblock %}

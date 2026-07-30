@@ -98,9 +98,26 @@ class EmailService:
         })
         await self._enviar(email_gestor, f"Nova solicitação de transferência - {ativo_codigo}", html)
 
-    async def enviar_transferencia_aprovada(self, email: str, nome: str, ativo_codigo: str):
-        html = self._renderizar("transferencia_aprovada.html", {"nome": nome, "ativo_codigo": ativo_codigo})
+    async def enviar_transferencia_aprovada(self, email: str, nome: str, ativo_codigo: str, ativo_modelo: str, novo_responsavel: str, data_hora: str):
+        html = self._renderizar("transferencia_aprovada.html", {
+            "nome": nome, "ativo_codigo": ativo_codigo, "ativo_modelo": ativo_modelo,
+            "novo_responsavel": novo_responsavel, "data_hora": data_hora,
+        })
         await self._enviar(email, f"Transferência aprovada - {ativo_codigo}", html)
+
+    async def enviar_transferencia_aprovada_gestor(self, email_gestor: str, nome_gestor: str, ativo_codigo: str, ativo_modelo: str, responsavel_anterior: str, novo_responsavel: str, data_hora: str):
+        html = self._renderizar("transferencia_aprovada_gestor.html", {
+            "nome_gestor": nome_gestor, "ativo_codigo": ativo_codigo, "ativo_modelo": ativo_modelo,
+            "responsavel_anterior": responsavel_anterior, "novo_responsavel": novo_responsavel, "data_hora": data_hora,
+        })
+        await self._enviar(email_gestor, f"Transferência aprovada - {ativo_codigo}", html)
+
+    async def enviar_transferencia_novo_responsavel(self, email: str, nome: str, ativo_codigo: str, ativo_modelo: str, responsavel_anterior: str, data_hora: str):
+        html = self._renderizar("transferencia_novo_responsavel.html", {
+            "nome": nome, "ativo_codigo": ativo_codigo, "ativo_modelo": ativo_modelo,
+            "responsavel_anterior": responsavel_anterior, "data_hora": data_hora,
+        })
+        await self._enviar(email, f"Ativo transferido para você - {ativo_codigo}", html)
 
     async def enviar_transferencia_rejeitada(self, email: str, nome: str, ativo_codigo: str, motivo: str | None):
         html = self._renderizar("transferencia_rejeitada.html", {
@@ -119,12 +136,20 @@ class EmailService:
         })
         await self._enviar(email_gestor, f"Nova solicitação de baixa - {item_nome}", html)
 
-    async def enviar_baixa_aprovada(self, email: str, nome: str, item_nome: str, quantidade: float, unidade: str, obra: str):
+    async def enviar_baixa_aprovada(self, email: str, nome: str, item_nome: str, quantidade: float, unidade: str, obra: str, data_hora: str):
         html = self._renderizar("baixa_aprovada.html", {
             "nome": nome, "item_nome": item_nome,
-            "quantidade": quantidade, "unidade": unidade, "obra": obra,
+            "quantidade": quantidade, "unidade": unidade, "obra": obra, "data_hora": data_hora,
         })
         await self._enviar(email, f"Baixa aprovada - {item_nome}", html)
+
+    async def enviar_baixa_aprovada_gestor(self, email_gestor: str, nome_gestor: str, item_nome: str, quantidade: float, unidade: str, obra: str, solicitante_nome: str, data_hora: str):
+        html = self._renderizar("baixa_aprovada_gestor.html", {
+            "nome_gestor": nome_gestor, "item_nome": item_nome,
+            "quantidade": quantidade, "unidade": unidade, "obra": obra,
+            "solicitante_nome": solicitante_nome, "data_hora": data_hora,
+        })
+        await self._enviar(email_gestor, f"Baixa de estoque aprovada - {item_nome}", html)
 
     async def enviar_baixa_rejeitada(self, email: str, nome: str, item_nome: str, motivo: str):
         html = self._renderizar("baixa_rejeitada.html", {
