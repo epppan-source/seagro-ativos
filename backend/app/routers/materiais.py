@@ -10,6 +10,8 @@ from app.schemas.material import (
 )
 from app.models.material import Material, MaterialMovimento
 from app.models.ativo import Ativo
+from app.services.email_service import EmailService
+from app.config import settings
 
 router = APIRouter(prefix="/api/materiais", tags=["materiais"])
 
@@ -73,6 +75,16 @@ async def movimentar(
     )
     db.add(movimento)
     await db.commit()
+
+    if dados.tipo == "SAIDA" and material.quantidade_minima > 0 and material.quantidade_atual <= material.quantidade_minima:
+        try:
+            await EmailService().enviar_alerta_estoque_baixo(
+                settings.GESTOR_EMAIL, material.nome,
+                float(material.quantidade_atual), float(material.quantidade_minima),
+            )
+        except Exception:
+            pass
+
     return material
 
 

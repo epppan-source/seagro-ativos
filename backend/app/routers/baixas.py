@@ -135,6 +135,14 @@ async def decidir(
                 observacao=f"Baixa aprovada - Obra: {baixa.obra}",
                 registrado_por_id=usuario.id,
             ))
+            if item.quantidade_minima > 0 and item.quantidade_atual <= item.quantidade_minima:
+                try:
+                    await EmailService().enviar_alerta_estoque_baixo(
+                        settings.GESTOR_EMAIL, item.nome,
+                        float(item.quantidade_atual), float(item.quantidade_minima),
+                    )
+                except Exception:
+                    pass
         else:
             item = await db.get(PecaReposicao, baixa.peca_id)
             if not item or item.quantidade_atual < baixa.quantidade:
@@ -148,6 +156,14 @@ async def decidir(
                 observacao=f"Baixa aprovada - Obra: {baixa.obra}",
                 registrado_por_id=usuario.id,
             ))
+            if item.quantidade_minima > 0 and item.quantidade_atual <= item.quantidade_minima:
+                try:
+                    await EmailService().enviar_alerta_estoque_baixo(
+                        settings.GESTOR_EMAIL, item.nome,
+                        float(item.quantidade_atual), float(item.quantidade_minima),
+                    )
+                except Exception:
+                    pass
 
         baixa.status = StatusBaixa.APROVADA
         data_hora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y às %H:%M")

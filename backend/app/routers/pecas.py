@@ -10,6 +10,8 @@ from app.schemas.peca_reposicao import (
 )
 from app.models.peca_reposicao import PecaReposicao, PecaMovimento
 from app.models.ativo import Ativo
+from app.services.email_service import EmailService
+from app.config import settings
 
 router = APIRouter(prefix="/api/pecas", tags=["pecas-reposicao"])
 
@@ -73,6 +75,16 @@ async def movimentar(
     )
     db.add(movimento)
     await db.commit()
+
+    if dados.tipo == "SAIDA" and peca.quantidade_minima > 0 and peca.quantidade_atual <= peca.quantidade_minima:
+        try:
+            await EmailService().enviar_alerta_estoque_baixo(
+                settings.GESTOR_EMAIL, peca.nome,
+                float(peca.quantidade_atual), float(peca.quantidade_minima),
+            )
+        except Exception:
+            pass
+
     return peca
 
 
