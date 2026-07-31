@@ -77,13 +77,17 @@ export default function TermoPage() {
       {/* Estilos de impressão */}
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 1.5cm; }
+          @page { size: A4 portrait; margin: 0; }
           body * { visibility: hidden !important; }
           #termo-conteudo, #termo-conteudo * { visibility: visible !important; }
           #termo-conteudo {
-            position: fixed; top: 0; left: 0; width: 100%;
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 1.5cm 2cm !important;
             border: none !important; box-shadow: none !important;
-            padding: 0 !important; max-width: none !important;
+            max-width: none !important; background: white !important;
           }
           #controles-termo { display: none !important; }
         }
