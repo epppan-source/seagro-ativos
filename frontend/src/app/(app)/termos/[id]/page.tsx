@@ -146,24 +146,24 @@ export default function TermoPage() {
 
         {/* Tabela de ativos */}
         <p className="font-semibold mb-2">Relação de Ativos Atribuídos:</p>
-        <table className="w-full border-collapse text-[10px] mb-5">
+        <table className="w-full border-collapse text-[9px] leading-none mb-5">
           <thead>
             <tr className="bg-gray-800 text-white">
-              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Código</th>
-              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Categoria</th>
-              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Modelo / Marca</th>
-              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Nº Série</th>
-              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Ano</th>
+              <th className="border border-gray-700 px-1.5 py-[3px] text-left">Código</th>
+              <th className="border border-gray-700 px-1.5 py-[3px] text-left">Categoria</th>
+              <th className="border border-gray-700 px-1.5 py-[3px] text-left">Modelo / Marca</th>
+              <th className="border border-gray-700 px-1.5 py-[3px] text-left">Nº Série</th>
+              <th className="border border-gray-700 px-1.5 py-[3px] text-left">Ano</th>
             </tr>
           </thead>
           <tbody>
             {ativos.map((a, i) => (
               <tr key={a.id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="border border-gray-200 px-1.5 py-[2px] font-mono">{a.codigo_interno}</td>
-                <td className="border border-gray-200 px-1.5 py-[2px]">{CATEGORIA_LABEL[a.categoria] || a.categoria}</td>
-                <td className="border border-gray-200 px-1.5 py-[2px]">{a.modelo} {a.marca ? `/ ${a.marca}` : ""}</td>
-                <td className="border border-gray-200 px-1.5 py-[2px]">{a.numero_serie || "—"}</td>
-                <td className="border border-gray-200 px-1.5 py-[2px]">{a.ano_fabricacao || "—"}</td>
+                <td className="border border-gray-200 px-1.5 py-[3px] font-mono">{a.codigo_interno}</td>
+                <td className="border border-gray-200 px-1.5 py-[3px]">{CATEGORIA_LABEL[a.categoria] || a.categoria}</td>
+                <td className="border border-gray-200 px-1.5 py-[3px]">{a.modelo} {a.marca ? `/ ${a.marca}` : ""}</td>
+                <td className="border border-gray-200 px-1.5 py-[3px]">{a.numero_serie || "—"}</td>
+                <td className="border border-gray-200 px-1.5 py-[3px]">{a.ano_fabricacao || "—"}</td>
               </tr>
             ))}
           </tbody>
