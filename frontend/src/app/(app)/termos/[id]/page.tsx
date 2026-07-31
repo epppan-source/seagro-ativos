@@ -77,9 +77,14 @@ export default function TermoPage() {
       {/* Estilos de impressão */}
       <style>{`
         @media print {
+          @page { size: A4 portrait; margin: 1.5cm; }
           body * { visibility: hidden !important; }
           #termo-conteudo, #termo-conteudo * { visibility: visible !important; }
-          #termo-conteudo { position: fixed; top: 0; left: 0; width: 100%; }
+          #termo-conteudo {
+            position: fixed; top: 0; left: 0; width: 100%;
+            border: none !important; box-shadow: none !important;
+            padding: 0 !important; max-width: none !important;
+          }
           #controles-termo { display: none !important; }
         }
       `}</style>
@@ -113,14 +118,14 @@ export default function TermoPage() {
       <div id="termo-conteudo" className="bg-white max-w-3xl mx-auto p-10 text-sm leading-relaxed text-gray-800 border border-gray-200 rounded-lg shadow-sm">
 
         {/* Cabeçalho */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-5">
           <p className="text-xs font-semibold tracking-widest text-gray-500 uppercase mb-1">SEAGRO Soluções Ambientais</p>
           <h1 className="text-lg font-bold uppercase tracking-wide">Termo de Responsabilidade de Equipamentos</h1>
           <div className="border-b-2 border-gray-800 mt-3" />
         </div>
 
         {/* Identificação */}
-        <div className="mb-6 grid grid-cols-2 gap-2 text-sm">
+        <div className="mb-4 grid grid-cols-2 gap-2 text-sm">
           <div><span className="font-semibold">Funcionário:</span> {funcionario.nome_completo}</div>
           <div><span className="font-semibold">CPF:</span> {formatarCPF(funcionario.cpf)}</div>
           <div><span className="font-semibold">Cargo:</span> {funcionario.cargo}</div>
@@ -128,7 +133,7 @@ export default function TermoPage() {
         </div>
 
         {/* Preâmbulo */}
-        <p className="mb-6 text-justify">
+        <p className="mb-4 text-justify">
           Eu, <strong>{funcionario.nome_completo}</strong>, portador(a) do CPF n.º <strong>{formatarCPF(funcionario.cpf)}</strong>,
           ocupando o cargo de <strong>{funcionario.cargo}</strong> na empresa <strong>SEAGRO Soluções Ambientais</strong>,
           declaro ter recebido em plenas condições de uso e conservação os equipamentos, ferramentas e demais
@@ -137,49 +142,52 @@ export default function TermoPage() {
 
         {/* Tabela de ativos */}
         <p className="font-semibold mb-2">Relação de Ativos Atribuídos:</p>
-        <table className="w-full border-collapse text-xs mb-8">
+        <table className="w-full border-collapse text-[10px] mb-5">
           <thead>
             <tr className="bg-gray-800 text-white">
-              <th className="border border-gray-700 px-2 py-1 text-left">Código</th>
-              <th className="border border-gray-700 px-2 py-1 text-left">Categoria</th>
-              <th className="border border-gray-700 px-2 py-1 text-left">Modelo / Marca</th>
-              <th className="border border-gray-700 px-2 py-1 text-left">Nº Série</th>
-              <th className="border border-gray-700 px-2 py-1 text-left">Ano</th>
+              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Código</th>
+              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Categoria</th>
+              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Modelo / Marca</th>
+              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Nº Série</th>
+              <th className="border border-gray-700 px-1.5 py-[2px] text-left">Ano</th>
             </tr>
           </thead>
           <tbody>
             {ativos.map((a, i) => (
               <tr key={a.id} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="border border-gray-200 px-2 py-1 font-mono">{a.codigo_interno}</td>
-                <td className="border border-gray-200 px-2 py-1">{CATEGORIA_LABEL[a.categoria] || a.categoria}</td>
-                <td className="border border-gray-200 px-2 py-1">{a.modelo} {a.marca ? `/ ${a.marca}` : ""}</td>
-                <td className="border border-gray-200 px-2 py-1">{a.numero_serie || "—"}</td>
-                <td className="border border-gray-200 px-2 py-1">{a.ano_fabricacao || "—"}</td>
+                <td className="border border-gray-200 px-1.5 py-[2px] font-mono">{a.codigo_interno}</td>
+                <td className="border border-gray-200 px-1.5 py-[2px]">{CATEGORIA_LABEL[a.categoria] || a.categoria}</td>
+                <td className="border border-gray-200 px-1.5 py-[2px]">{a.modelo} {a.marca ? `/ ${a.marca}` : ""}</td>
+                <td className="border border-gray-200 px-1.5 py-[2px]">{a.numero_serie || "—"}</td>
+                <td className="border border-gray-200 px-1.5 py-[2px]">{a.ano_fabricacao || "—"}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
         {/* Cláusulas */}
-        <p className="font-semibold mb-3">Cláusulas:</p>
+        <p className="font-semibold mb-2">Cláusulas:</p>
 
-        <p className="mb-4 text-justify">
+        <p className="mb-3 text-justify">
           <strong>1. Responsabilidade pela Guarda e Conservação.</strong> O signatário declara-se responsável pela
           guarda, conservação e uso adequado dos ativos listados acima a partir da data de vigência deste Termo.
           Qualquer avaria, extravio, furto ou roubo deverá ser comunicado imediatamente ao gestor responsável,
           sob pena de ressarcimento pelo valor de mercado do bem, conforme avaliação da empresa.
         </p>
 
-        <p className="mb-4 text-justify">
+        <p className="mb-3 text-justify">
           <strong>2. Procedimento de Movimentação e Transferência.</strong> Toda e qualquer movimentação,
           transferência ou devolução dos ativos listados neste Termo deverá ser realizada exclusivamente por
           meio do sistema SEAGRO Ativos, obedecendo ao seguinte trâmite: (a) leitura do QR Code do equipamento
           pelo sistema; (b) registro da transferência com identificação do destinatário; e (c) aprovação prévia
           do gestor responsável. Movimentações realizadas fora deste procedimento não serão reconhecidas e a
           responsabilidade pelo ativo permanecerá com o último signatário registrado no sistema.
+          Adicionalmente, toda movimentação aprovada — transferência, devolução ou baixa de ativo — gera
+          automaticamente notificações por e-mail aos envolvidos na operação, confirmando os detalhes da
+          transação realizada.
         </p>
 
-        <p className="mb-8 text-justify">
+        <p className="mb-6 text-justify">
           <strong>3. Vigência e Revisão Periódica.</strong> Este Termo entra em vigor na data de{" "}
           <strong>{formatarData(dataVigencia)}</strong> e permanecerá válido por 12 (doze) meses, com revisão
           prevista para <strong>{dataRevisao(dataVigencia)}</strong> ou sempre que houver alteração no rol de
@@ -188,16 +196,16 @@ export default function TermoPage() {
         </p>
 
         {/* Assinaturas */}
-        <div className="grid grid-cols-2 gap-12 mt-10">
+        <div className="grid grid-cols-2 gap-12 mt-6">
           <div className="text-center">
-            <div className="border-t border-gray-800 pt-2 mt-10">
+            <div className="border-t border-gray-800 pt-2 mt-8">
               <p className="font-semibold">{funcionario.nome_completo}</p>
               <p className="text-xs text-gray-500">CPF: {formatarCPF(funcionario.cpf)}</p>
               <p className="text-xs text-gray-500">Funcionário</p>
             </div>
           </div>
           <div className="text-center">
-            <div className="border-t border-gray-800 pt-2 mt-10">
+            <div className="border-t border-gray-800 pt-2 mt-8">
               <p className="font-semibold">Eduardo Pancini</p>
               <p className="text-xs text-gray-500">Gestor Responsável</p>
               <p className="text-xs text-gray-500">SEAGRO Soluções Ambientais</p>
