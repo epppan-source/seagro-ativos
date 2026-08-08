@@ -43,6 +43,7 @@ interface Painel {
   }
 }
 
+// Cores da identidade visual SEAGRO
 const VERDE = "#2E7D32"
 const VERDE_ESCURO = "#0d3d2e"
 const VERDE_BG = "#E8F5E9"
@@ -198,15 +199,17 @@ function ListaAtivos({
       {titulo && <p className="text-xs font-semibold text-gray-500 mb-1">{titulo}</p>}
       <ul className="space-y-1 text-sm">
         {ativos.map((a) => (
-          <li key={a.id} className="flex justify-between border-b py-1">
-            {compacto ? (
-              <span className="font-medium">{a.codigo_interno} — {a.modelo}</span>
-            ) : (
-              <>
-                <span>{a.codigo_interno} — {a.marca} {a.modelo}</span>
-                <span className="text-gray-400 text-xs">{a.categoria}</span>
-              </>
-            )}
+          <li key={a.id} className="border-b py-1">
+            <a href={`/ativos/${a.id}`} className="w-full flex justify-between hover:text-green-700 active:text-green-800">
+              {compacto ? (
+                <span className="font-medium">{a.codigo_interno} — {a.modelo}</span>
+              ) : (
+                <>
+                  <span>{a.codigo_interno} — {a.marca} {a.modelo}</span>
+                  <span className="text-gray-400 text-xs">{a.categoria}</span>
+                </>
+              )}
+            </a>
           </li>
         ))}
       </ul>

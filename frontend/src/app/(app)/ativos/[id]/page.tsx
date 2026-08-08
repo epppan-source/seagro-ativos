@@ -181,6 +181,7 @@ export default function FichaAtivoPage() {
   }
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" })
     carregarFotos()
     carregarRegistros()
     // eslint-disable-next-line react-hooks/exhaustive-deps
