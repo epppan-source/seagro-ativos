@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_role
 from app.models.manutencao_registro import ManutencaoRegistro
 from app.models.funcionario import Funcionario
 from app.schemas.manutencao_registro import ManutencaoRegistroCreate, ManutencaoRegistroOut
@@ -32,6 +32,7 @@ async def assinar_upload(
     ativo_id: uuid.UUID,
     usuario: Funcionario = Depends(get_current_user),
 ):
+    """Retorna parâmetros assinados para upload direto ao Cloudinary."""
     if not settings.CLOUDINARY_API_SECRET:
         raise HTTPException(status_code=503, detail="Cloudinary não configurado.")
     _cfg_cloudinary()
@@ -69,7 +70,7 @@ async def criar(
     db: AsyncSession = Depends(get_db),
     usuario: Funcionario = Depends(get_current_user),
 ):
-    agora = datetime.utcnow() - timedelta(hours=3)
+    agora = datetime.utcnow() - timedelta(hours=3)  # BRT
     registro = ManutencaoRegistro(
         ativo_id=ativo_id,
         usuario_id=usuario.id,
@@ -81,6 +82,7 @@ async def criar(
     )
     db.add(registro)
 
+    # Atualiza data de revisão prevista no ativo se informada
     if dados.proxima_revisao:
         from app.models.ativo import Ativo
         ativo = await db.get(Ativo, ativo_id)
@@ -96,3 +98,17 @@ async def criar(
         .where(ManutencaoRegistro.id == registro.id)
     )
     return result.scalars().one()
+
+
+@router.delete("/{ativo_id}/manutencao-registros/{registro_id}", status_code=204)
+async def excluir(
+    ativo_id: uuid.UUID,
+    registro_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    usuario: Funcionario = Depends(require_role("gestor")),
+):
+    registro = await db.get(ManutencaoRegistro, registro_id)
+    if not registro or registro.ativo_id != ativo_id:
+        raise HTTPException(status_code=404, detail="Registro não encontrado.")
+    await db.delete(registro)
+    await db.commit()

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { X, Video, Upload, ChevronDown, ChevronUp, Camera, StopCircle, Trash2 } from "lucide-react"
+import { getRole } from "@/lib/auth"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -77,6 +78,7 @@ export default function FichaAtivoPage() {
   const [erroEnvio, setErroEnvio] = useState("")
   const [videoExpandido, setVideoExpandido] = useState<string | null>(null)
   const inputVideoRef = useRef<HTMLInputElement>(null)
+  const isGestor = getRole() === "gestor"
   // Gravador embutido
   const [modoGravacao, setModoGravacao] = useState<"idle" | "preparando" | "gravando" | "preview">("idle")
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
@@ -137,7 +139,7 @@ export default function FichaAtivoPage() {
       setModoGravacao("gravando")
     } catch {
       setModoGravacao("idle")
-      setErroEnvio("Não foi possível acessar a câmera. Use 'Selecionar da galeria' para escolher um vídeo.")
+      setErroEnvio("Não foi possível acessar a câmera. Use 'Selecionar arquivo' para escolher um vídeo da galeria.")
     }
   }
 
@@ -160,6 +162,16 @@ export default function FichaAtivoPage() {
 
   function formatarTempo(s: number) {
     return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
+  }
+
+  async function excluirRegistro(registroId: string) {
+    if (!window.confirm("Excluir este registro de manutenção? Esta ação não pode ser desfeita.")) return
+    try {
+      await api.delete(`/api/ativos/${params.id}/manutencao-registros/${registroId}`)
+      setRegistros((rs) => rs.filter((r) => r.id !== registroId))
+    } catch {
+      alert("Erro ao excluir registro.")
+    }
   }
 
   async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -192,7 +204,7 @@ export default function FichaAtivoPage() {
 
   async function enviarManutencao() {
     if (!videoFile && !descricao.trim()) {
-      setErroEnvio("Informe pelo menos uma descrição ou grave/selecione um vídeo.")
+      setErroEnvio("Informe pelo menos uma descrição ou selecione um vídeo.")
       return
     }
     setEnviando(true)
@@ -203,7 +215,10 @@ export default function FichaAtivoPage() {
       let videoPublicId: string | null = null
 
       if (videoFile) {
+        // 1. Obter assinatura do backend
         const { data: signData } = await api.post(`/api/ativos/${params.id}/manutencao-registros/assinar-upload`)
+
+        // 2. Upload direto para o Cloudinary com XMLHttpRequest para acompanhar progresso
         const formData = new FormData()
         formData.append("file", videoFile)
         formData.append("api_key", signData.api_key)
@@ -229,6 +244,7 @@ export default function FichaAtivoPage() {
         videoPublicId = uploadResult.public_id
       }
 
+      // 3. Salvar registro no backend
       await api.post(`/api/ativos/${params.id}/manutencao-registros`, {
         video_url: videoUrl,
         video_public_id: videoPublicId,
@@ -236,6 +252,7 @@ export default function FichaAtivoPage() {
         proxima_revisao: proximaRevisao || null,
       })
 
+      // Reset form
       setVideoFile(null)
       setDescricao("")
       setProximaRevisao("")
@@ -246,9 +263,10 @@ export default function FichaAtivoPage() {
       if (inputVideoRef.current) inputVideoRef.current.value = ""
       carregarRegistros()
 
+      // Recarregar ativo para atualizar data de revisão
       const res = await api.get(`/api/ativos/${params.id}`)
       setAtivo(res.data)
-    } catch {
+    } catch (err: any) {
       setErroEnvio("Erro ao registrar manutenção. Tente novamente.")
     } finally {
       setEnviando(false)
@@ -268,16 +286,24 @@ export default function FichaAtivoPage() {
       .then(async (res) => {
         const a: Ativo = res.data
         setAtivo(a)
+
         const tipoCategoria = CATEGORIA_LABEL[a.categoria]?.tipoCategoria || "equipamento"
-        api.get(`/api/tipos/${tipoCategoria}`).then((r) => {
-          const t = r.data.find((x: any) => x.id === a.tipo_id)
-          if (t) setTipoNome(t.nome)
-        }).catch(() => {})
+        api
+          .get(`/api/tipos/${tipoCategoria}`)
+          .then((r) => {
+            const t = r.data.find((x: any) => x.id === a.tipo_id)
+            if (t) setTipoNome(t.nome)
+          })
+          .catch(() => {})
+
         if (a.responsavel_id) {
-          api.get("/api/funcionarios").then((r) => {
-            const f = r.data.find((x: any) => x.id === a.responsavel_id)
-            if (f) setResponsavelNome(f.nome_completo)
-          }).catch(() => {})
+          api
+            .get("/api/funcionarios")
+            .then((r) => {
+              const f = r.data.find((x: any) => x.id === a.responsavel_id)
+              if (f) setResponsavelNome(f.nome_completo)
+            })
+            .catch(() => {})
         }
       })
       .catch((err) => {
@@ -286,7 +312,9 @@ export default function FichaAtivoPage() {
       .finally(() => setCarregando(false))
   }, [params.id])
 
-  if (carregando) return <div className="text-sm text-gray-500">Carregando...</div>
+  if (carregando) {
+    return <div className="text-sm text-gray-500">Carregando...</div>
+  }
 
   if (erro || !ativo) {
     return (
@@ -367,6 +395,7 @@ export default function FichaAtivoPage() {
           </button>
         </div>
 
+        {/* Formulário de novo registro */}
         {formAberto && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
             <p className="text-xs font-semibold text-orange-800 mb-3">Novo Registro de Manutenção</p>
@@ -430,10 +459,10 @@ export default function FichaAtivoPage() {
               )}
 
               {modoGravacao === "idle" && videoFile && (
-                <div className="flex items-center gap-2 text-xs text-gray-600 bg-white border border-orange-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-gray-600 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
                   <Video size={13} className="text-orange-500 shrink-0" />
                   <span className="truncate">{videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)} MB</span>
-                  <button type="button" onClick={() => setVideoFile(null)} className="text-red-500 shrink-0 ml-auto">
+                  <button type="button" onClick={() => setVideoFile(null)} className="text-red-500 shrink-0">
                     <X size={13} />
                   </button>
                 </div>
@@ -490,6 +519,7 @@ export default function FichaAtivoPage() {
           </div>
         )}
 
+        {/* Lista de registros */}
         {registros.length === 0 ? (
           <p className="text-xs text-gray-400">Nenhuma manutenção registrada ainda.</p>
         ) : (
@@ -508,15 +538,26 @@ export default function FichaAtivoPage() {
                       </p>
                     )}
                   </div>
-                  {r.video_url && (
-                    <button
-                      onClick={() => setVideoExpandido(videoExpandido === r.id ? null : r.id)}
-                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800 shrink-0 ml-2"
-                    >
-                      <Video size={13} />
-                      {videoExpandido === r.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {r.video_url && (
+                      <button
+                        onClick={() => setVideoExpandido(videoExpandido === r.id ? null : r.id)}
+                        className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800"
+                      >
+                        <Video size={13} />
+                        {videoExpandido === r.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                      </button>
+                    )}
+                    {isGestor && (
+                      <button
+                        onClick={() => excluirRegistro(r.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        title="Excluir registro"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {r.descricao && (
@@ -527,7 +568,11 @@ export default function FichaAtivoPage() {
 
                 {r.video_url && videoExpandido === r.id && (
                   <div className="px-3 pb-3 border-t border-gray-100">
-                    <video controls className="w-full max-h-64 rounded mt-2 bg-black" src={r.video_url}>
+                    <video
+                      controls
+                      className="w-full max-h-64 rounded mt-2 bg-black"
+                      src={r.video_url}
+                    >
                       Seu navegador não suporta vídeo.
                     </video>
                   </div>
@@ -575,9 +620,7 @@ export default function FichaAtivoPage() {
           </div>
           <div>
             <dt className="text-xs text-gray-500">Próxima revisão prevista</dt>
-            <dd className="font-medium text-gray-800">
-              {ativo.data_revisao_prevista ? new Date(ativo.data_revisao_prevista + "T12:00:00").toLocaleDateString("pt-BR") : "-"}
-            </dd>
+            <dd className="font-medium text-gray-800">{ativo.data_revisao_prevista ? new Date(ativo.data_revisao_prevista + "T12:00:00").toLocaleDateString("pt-BR") : "-"}</dd>
           </div>
           {ativo.observacoes && (
             <div className="md:col-span-2">

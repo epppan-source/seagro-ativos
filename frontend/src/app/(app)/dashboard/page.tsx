@@ -199,8 +199,8 @@ function ListaAtivos({
       {titulo && <p className="text-xs font-semibold text-gray-500 mb-1">{titulo}</p>}
       <ul className="space-y-1 text-sm">
         {ativos.map((a) => (
-          <li key={a.id} className="border-b py-1">
-            <a href={`/ativos/${a.id}`} className="w-full flex justify-between hover:text-green-700 active:text-green-800">
+          <li key={a.id} className="flex justify-between border-b py-1">
+            <a href={`/ativos/${a.id}`} className="hover:text-green-700 hover:underline w-full flex justify-between">
               {compacto ? (
                 <span className="font-medium">{a.codigo_interno} — {a.modelo}</span>
               ) : (
