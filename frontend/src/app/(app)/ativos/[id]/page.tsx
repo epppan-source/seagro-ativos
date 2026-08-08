@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import api from "@/lib/api"
-import { X, Video, Upload, ChevronDown, ChevronUp } from "lucide-react"
+import { X, Video, Upload, ChevronDown, ChevronUp, Camera, StopCircle, Trash2 } from "lucide-react"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   NA_MAO_FUNCIONARIO: { label: "Com Funcionário", color: "bg-blue-100 text-blue-800" },
@@ -77,6 +77,15 @@ export default function FichaAtivoPage() {
   const [erroEnvio, setErroEnvio] = useState("")
   const [videoExpandido, setVideoExpandido] = useState<string | null>(null)
   const inputVideoRef = useRef<HTMLInputElement>(null)
+  // Gravador embutido
+  const [modoGravacao, setModoGravacao] = useState<"idle" | "preparando" | "gravando" | "preview">("idle")
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [tempoGravacao, setTempoGravacao] = useState(0)
+  const streamRef = useRef<MediaStream | null>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const videoLiveRef = useRef<HTMLVideoElement>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function carregarFotos() {
     api.get(`/api/uploads/ativos/${params.id}/fotos`).then((res) => setFotos(res.data)).catch(() => {})
@@ -86,6 +95,71 @@ export default function FichaAtivoPage() {
     api.get(`/api/ativos/${params.id}/manutencao-registros`)
       .then((res) => setRegistros(res.data))
       .catch(() => {})
+  }
+
+  async function iniciarGravacao() {
+    setErroEnvio("")
+    setModoGravacao("preparando")
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: true,
+      })
+      streamRef.current = stream
+      if (videoLiveRef.current) {
+        videoLiveRef.current.srcObject = stream
+        videoLiveRef.current.play()
+      }
+      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+        ? "video/webm;codecs=vp9"
+        : MediaRecorder.isTypeSupported("video/webm")
+        ? "video/webm"
+        : "video/mp4"
+      const mr = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 800_000 })
+      chunksRef.current = []
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: mimeType })
+        const ext = mimeType.includes("mp4") ? "mp4" : "webm"
+        const file = new File([blob], `manutencao_${Date.now()}.${ext}`, { type: mimeType })
+        setVideoFile(file)
+        const url = URL.createObjectURL(blob)
+        setVideoPreviewUrl(url)
+        setModoGravacao("preview")
+        stream.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
+        if (timerRef.current) clearInterval(timerRef.current)
+      }
+      mediaRecorderRef.current = mr
+      mr.start(1000)
+      setTempoGravacao(0)
+      timerRef.current = setInterval(() => setTempoGravacao((t) => t + 1), 1000)
+      setModoGravacao("gravando")
+    } catch {
+      setModoGravacao("idle")
+      setErroEnvio("Não foi possível acessar a câmera. Use 'Selecionar da galeria' para escolher um vídeo.")
+    }
+  }
+
+  function pararGravacao() {
+    if (timerRef.current) clearInterval(timerRef.current)
+    mediaRecorderRef.current?.stop()
+  }
+
+  function descartarGravacao() {
+    if (timerRef.current) clearInterval(timerRef.current)
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    mediaRecorderRef.current = null
+    chunksRef.current = []
+    if (videoPreviewUrl) { URL.revokeObjectURL(videoPreviewUrl); setVideoPreviewUrl(null) }
+    setVideoFile(null)
+    setTempoGravacao(0)
+    setModoGravacao("idle")
+  }
+
+  function formatarTempo(s: number) {
+    return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`
   }
 
   async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -118,7 +192,7 @@ export default function FichaAtivoPage() {
 
   async function enviarManutencao() {
     if (!videoFile && !descricao.trim()) {
-      setErroEnvio("Informe pelo menos uma descrição ou selecione um vídeo.")
+      setErroEnvio("Informe pelo menos uma descrição ou grave/selecione um vídeo.")
       return
     }
     setEnviando(true)
@@ -130,7 +204,6 @@ export default function FichaAtivoPage() {
 
       if (videoFile) {
         const { data: signData } = await api.post(`/api/ativos/${params.id}/manutencao-registros/assinar-upload`)
-
         const formData = new FormData()
         formData.append("file", videoFile)
         formData.append("api_key", signData.api_key)
@@ -168,6 +241,8 @@ export default function FichaAtivoPage() {
       setProximaRevisao("")
       setFormAberto(false)
       setProgressoUpload(0)
+      setModoGravacao("idle")
+      if (videoPreviewUrl) { URL.revokeObjectURL(videoPreviewUrl); setVideoPreviewUrl(null) }
       if (inputVideoRef.current) inputVideoRef.current.value = ""
       carregarRegistros()
 
@@ -193,24 +268,16 @@ export default function FichaAtivoPage() {
       .then(async (res) => {
         const a: Ativo = res.data
         setAtivo(a)
-
         const tipoCategoria = CATEGORIA_LABEL[a.categoria]?.tipoCategoria || "equipamento"
-        api
-          .get(`/api/tipos/${tipoCategoria}`)
-          .then((r) => {
-            const t = r.data.find((x: any) => x.id === a.tipo_id)
-            if (t) setTipoNome(t.nome)
-          })
-          .catch(() => {})
-
+        api.get(`/api/tipos/${tipoCategoria}`).then((r) => {
+          const t = r.data.find((x: any) => x.id === a.tipo_id)
+          if (t) setTipoNome(t.nome)
+        }).catch(() => {})
         if (a.responsavel_id) {
-          api
-            .get("/api/funcionarios")
-            .then((r) => {
-              const f = r.data.find((x: any) => x.id === a.responsavel_id)
-              if (f) setResponsavelNome(f.nome_completo)
-            })
-            .catch(() => {})
+          api.get("/api/funcionarios").then((r) => {
+            const f = r.data.find((x: any) => x.id === a.responsavel_id)
+            if (f) setResponsavelNome(f.nome_completo)
+          }).catch(() => {})
         }
       })
       .catch((err) => {
@@ -293,7 +360,7 @@ export default function FichaAtivoPage() {
             <Video size={15} className="text-orange-500" /> Histórico de Manutenção
           </h2>
           <button
-            onClick={() => { setFormAberto(!formAberto); setErroEnvio("") }}
+            onClick={() => { setFormAberto(!formAberto); setErroEnvio(""); if (formAberto) descartarGravacao() }}
             className="text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50"
           >
             {formAberto ? "Cancelar" : "+ Registrar manutenção"}
@@ -304,42 +371,85 @@ export default function FichaAtivoPage() {
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
             <p className="text-xs font-semibold text-orange-800 mb-3">Novo Registro de Manutenção</p>
 
+            {/* Vídeo */}
             <div className="mb-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Vídeo da manutenção <span className="text-gray-400">(opcional — grave direto pelo celular)</span>
+              <label className="block text-xs font-medium text-gray-600 mb-2">
+                Vídeo da manutenção <span className="text-gray-400">(opcional)</span>
               </label>
-              <input
-                ref={inputVideoRef}
-                type="file"
-                accept="video/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
-              />
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => inputVideoRef.current?.click()}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-orange-300 bg-white hover:bg-orange-50"
-                >
-                  <Upload size={12} /> {videoFile ? "Trocar vídeo" : "Selecionar / gravar vídeo"}
-                </button>
-                {videoFile && (
-                  <span className="text-xs text-gray-600 truncate max-w-xs">
-                    {videoFile.name} ({(videoFile.size / 1024 / 1024).toFixed(1)} MB)
-                  </span>
-                )}
-              </div>
+
+              {modoGravacao === "idle" && !videoFile && (
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" onClick={iniciarGravacao}
+                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600">
+                    <Camera size={13} /> Gravar vídeo
+                  </button>
+                  <button type="button" onClick={() => inputVideoRef.current?.click()}
+                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-orange-300 bg-white hover:bg-orange-50">
+                    <Upload size={13} /> Selecionar da galeria
+                  </button>
+                  <input ref={inputVideoRef} type="file" accept="video/*" className="hidden"
+                    onChange={(e) => { setVideoFile(e.target.files?.[0] ?? null) }} />
+                </div>
+              )}
+
+              {modoGravacao === "preparando" && (
+                <p className="text-xs text-orange-600 animate-pulse">Acessando câmera...</p>
+              )}
+
+              {modoGravacao === "gravando" && (
+                <div>
+                  <video ref={videoLiveRef} autoPlay muted playsInline
+                    className="w-full max-h-52 rounded-lg bg-black mb-2 object-cover" />
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1.5 text-xs text-red-600 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
+                      {formatarTempo(tempoGravacao)}
+                    </span>
+                    <button type="button" onClick={pararGravacao}
+                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600">
+                      <StopCircle size={13} /> Parar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modoGravacao === "preview" && videoPreviewUrl && (
+                <div>
+                  <video src={videoPreviewUrl} controls
+                    className="w-full max-h-52 rounded-lg bg-black mb-2" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">
+                      {videoFile && `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ${formatarTempo(tempoGravacao)}`}
+                    </span>
+                    <button type="button" onClick={descartarGravacao}
+                      className="flex items-center gap-1 text-xs text-red-600 hover:underline">
+                      <Trash2 size={12} /> Regravar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {modoGravacao === "idle" && videoFile && (
+                <div className="flex items-center gap-2 text-xs text-gray-600 bg-white border border-orange-200 rounded-lg px-3 py-2">
+                  <Video size={13} className="text-orange-500 shrink-0" />
+                  <span className="truncate">{videoFile.name} · {(videoFile.size / 1024 / 1024).toFixed(1)} MB</span>
+                  <button type="button" onClick={() => setVideoFile(null)} className="text-red-500 shrink-0 ml-auto">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
               {enviando && progressoUpload > 0 && progressoUpload < 100 && (
                 <div className="mt-2">
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div className="bg-orange-500 h-1.5 rounded-full transition-all" style={{ width: `${progressoUpload}%` }} />
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${progressoUpload}%` }} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{progressoUpload}% enviado...</p>
+                  <p className="text-xs text-gray-500 mt-1">Enviando vídeo: {progressoUpload}%</p>
                 </div>
               )}
             </div>
 
+            {/* Descrição */}
             <div className="mb-3">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 O que foi feito? <span className="text-gray-400">(peças trocadas, serviços realizados…)</span>
@@ -353,6 +463,7 @@ export default function FichaAtivoPage() {
               />
             </div>
 
+            {/* Próxima revisão */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Próxima revisão prevista <span className="text-gray-400">(opcional)</span>
@@ -374,9 +485,7 @@ export default function FichaAtivoPage() {
               disabled={enviando}
               className="w-full bg-orange-500 text-white text-sm font-medium py-2.5 rounded-lg hover:bg-orange-600 disabled:opacity-50"
             >
-              {enviando
-                ? (progressoUpload > 0 ? `Enviando vídeo (${progressoUpload}%)...` : "Salvando...")
-                : "Registrar manutenção"}
+              {enviando ? (progressoUpload > 0 ? `Enviando vídeo (${progressoUpload}%)...` : "Salvando...") : "Registrar manutenção"}
             </button>
           </div>
         )}
@@ -402,7 +511,7 @@ export default function FichaAtivoPage() {
                   {r.video_url && (
                     <button
                       onClick={() => setVideoExpandido(videoExpandido === r.id ? null : r.id)}
-                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800"
+                      className="flex items-center gap-1 text-xs text-orange-600 hover:text-orange-800 shrink-0 ml-2"
                     >
                       <Video size={13} />
                       {videoExpandido === r.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -467,9 +576,7 @@ export default function FichaAtivoPage() {
           <div>
             <dt className="text-xs text-gray-500">Próxima revisão prevista</dt>
             <dd className="font-medium text-gray-800">
-              {ativo.data_revisao_prevista
-                ? new Date(ativo.data_revisao_prevista + "T12:00:00").toLocaleDateString("pt-BR")
-                : "-"}
+              {ativo.data_revisao_prevista ? new Date(ativo.data_revisao_prevista + "T12:00:00").toLocaleDateString("pt-BR") : "-"}
             </dd>
           </div>
           {ativo.observacoes && (
