@@ -43,7 +43,6 @@ interface Painel {
   }
 }
 
-// Cores da identidade visual SEAGRO
 const VERDE = "#2E7D32"
 const VERDE_ESCURO = "#0d3d2e"
 const VERDE_BG = "#E8F5E9"
@@ -94,30 +93,44 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Seção 2 — Depósito */}
+      {/* Seção 2 — Depósito e Manutenção */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Depósito
+          Depósito e Manutenção
         </h2>
-        <Card
-          titulo="Depósito"
-          subtitulo={`${painel.deposito.total} ativo(s) disponível(is)`}
-          icone={Warehouse}
-        >
-          {painel.deposito.total === 0 ? (
-            <p className="text-sm text-gray-400 italic">Nenhum ativo no depósito no momento.</p>
-          ) : (
-            <ListaAtivos ativos={painel.deposito.ativos} compacto />
-          )}
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card
+            titulo="Depósito"
+            subtitulo={`${painel.deposito.total} ativo(s) disponível(is)`}
+            icone={Warehouse}
+          >
+            {painel.deposito.total === 0 ? (
+              <p className="text-sm text-gray-400 italic">Nenhum ativo no depósito no momento.</p>
+            ) : (
+              <ListaAtivos ativos={painel.deposito.ativos} compacto />
+            )}
+          </Card>
+
+          <Card
+            titulo="Manutenção"
+            subtitulo={`${painel.manutencao.total} em manutenção · ${painel.manutencao.manutencoes_agendadas} agendada(s)`}
+            icone={Wrench}
+          >
+            {painel.manutencao.total === 0 ? (
+              <p className="text-sm text-gray-400 italic">Nenhum ativo em manutenção.</p>
+            ) : (
+              <ListaAtivos ativos={painel.manutencao.ativos} compacto />
+            )}
+          </Card>
+        </div>
       </section>
 
-      {/* Seção 3 — Materiais, Peças e Manutenção */}
+      {/* Seção 3 — Materiais e Peças de Reposição */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
-          Materiais, Peças e Manutenção
+          Materiais e Peças de Reposição
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card
             titulo="Materiais"
             subtitulo={`${painel.materiais.materiais.length} item(ns) · ${painel.materiais.materiais.filter((i) => i.baixo_estoque).length} em baixo estoque`}
@@ -134,14 +147,6 @@ export default function DashboardPage() {
             destaque={painel.materiais.pecas.some((i) => i.baixo_estoque)}
           >
             <ListaEstoque itens={painel.materiais.pecas} />
-          </Card>
-
-          <Card
-            titulo="Manutenção"
-            subtitulo={`${painel.manutencao.total} em manutenção · ${painel.manutencao.manutencoes_agendadas} agendada(s)`}
-            icone={Wrench}
-          >
-            <ListaAtivos ativos={painel.manutencao.ativos} compacto />
           </Card>
         </div>
       </section>
