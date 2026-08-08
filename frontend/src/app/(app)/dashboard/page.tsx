@@ -94,7 +94,25 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Seção 2 — Materiais, Peças e Manutenção */}
+      {/* Seção 2 — Depósito */}
+      <section>
+        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+          Depósito
+        </h2>
+        <Card
+          titulo="Depósito"
+          subtitulo={`${painel.deposito.total} ativo(s) disponível(is)`}
+          icone={Warehouse}
+        >
+          {painel.deposito.total === 0 ? (
+            <p className="text-sm text-gray-400 italic">Nenhum ativo no depósito no momento.</p>
+          ) : (
+            <ListaAtivos ativos={painel.deposito.ativos} compacto />
+          )}
+        </Card>
+      </section>
+
+      {/* Seção 3 — Materiais, Peças e Manutenção */}
       <section>
         <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
           Materiais, Peças e Manutenção
@@ -112,7 +130,7 @@ export default function DashboardPage() {
           <Card
             titulo="Peças de reposição"
             subtitulo={`${painel.materiais.pecas.length} item(ns) · ${painel.materiais.pecas.filter((i) => i.baixo_estoque).length} em baixo estoque`}
-            icone={Warehouse}
+            icone={Archive}
             destaque={painel.materiais.pecas.some((i) => i.baixo_estoque)}
           >
             <ListaEstoque itens={painel.materiais.pecas} />
