@@ -395,118 +395,179 @@ export default function MateriaisPage() {
         </form>
       )}
 
-      <div className="space-y-3">
+      {/* Grid de cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {materiais.map((m) => {
           const pct = Math.min((m.quantidade_atual / (m.quantidade_minima * 2 || 1)) * 100, 100)
-          const color = m.quantidade_atual === 0 ? "bg-red-500" : m.quantidade_atual <= m.quantidade_minima ? "bg-orange-400" : "bg-green-500"
+          const semEstoque = m.quantidade_atual === 0
+          const baixo = !semEstoque && m.quantidade_atual <= m.quantidade_minima
+          const barColor = semEstoque ? "bg-red-500" : baixo ? "bg-orange-400" : "bg-green-500"
+          const badgeColor = semEstoque
+            ? "bg-red-100 text-red-700"
+            : baixo
+            ? "bg-orange-100 text-orange-700"
+            : "bg-green-100 text-green-700"
+          const ativo = movMaterialId === m.id || historicoMaterialId === m.id
+
           return (
-            <div key={m.id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between mb-1">
-                <span className="font-medium flex items-center gap-2">
-                  {m.foto_url && <img src={m.foto_url} alt={m.nome} className="w-7 h-7 rounded object-cover" />}
-                  {m.nome} <span className="text-gray-400 text-xs">({m.codigo})</span>
+            <div
+              key={m.id}
+              className={`bg-white rounded-xl shadow flex flex-col overflow-hidden border-2 transition-colors ${ativo ? "border-seagro" : "border-transparent"}`}
+            >
+              {/* Foto ou placeholder */}
+              <div className="w-full aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
+                {m.foto_url ? (
+                  <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl select-none">📦</span>
+                )}
+              </div>
+
+              {/* Conteúdo */}
+              <div className="flex flex-col flex-1 p-3 gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">{m.nome}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{m.codigo}</p>
+                </div>
+
+                {/* Badge de estoque */}
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full self-start ${badgeColor}`}>
+                  {m.quantidade_atual} / {m.quantidade_minima} {m.unidade}
                 </span>
-                <div className="flex items-center gap-2 flex-wrap justify-end">
-                  <span className="text-xs text-gray-500">{m.quantidade_atual} / {m.quantidade_minima} {m.unidade}</span>
-                  <button onClick={() => historicoMaterialId === m.id ? setHistoricoMaterialId(null) : abrirHistorico(m.id)}
-                    className="flex items-center gap-1 text-xs text-gray-600 border border-gray-300 bg-gray-50 px-2 py-1 rounded hover:bg-gray-100">
-                    <History size={12} /> Histórico
+
+                {/* Barra de estoque */}
+                <div className="bg-gray-200 rounded-full h-1.5">
+                  <div className={`${barColor} h-1.5 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                </div>
+
+                {/* Ações */}
+                <div className="grid grid-cols-2 gap-1 mt-auto pt-1">
+                  <button
+                    onClick={() => abrirMovimento(m.id, "ENTRADA")}
+                    className="flex items-center justify-center gap-1 text-[11px] text-green-700 border border-green-300 bg-green-50 py-1.5 rounded-lg hover:bg-green-100"
+                  >
+                    <ArrowDownCircle size={11} /> Entrada
                   </button>
-                  <button onClick={() => abrirMovimento(m.id, "ENTRADA")}
-                    className="flex items-center gap-1 text-xs text-green-700 border border-green-300 bg-green-50 px-2 py-1 rounded hover:bg-green-100">
-                    <ArrowDownCircle size={12} /> Entrada
+                  <button
+                    onClick={() => abrirMovimento(m.id, "SAIDA")}
+                    className="flex items-center justify-center gap-1 text-[11px] text-orange-700 border border-orange-300 bg-orange-50 py-1.5 rounded-lg hover:bg-orange-100"
+                  >
+                    <ArrowUpCircle size={11} /> Saída
                   </button>
-                  <button onClick={() => abrirMovimento(m.id, "SAIDA")}
-                    className="flex items-center gap-1 text-xs text-orange-700 border border-orange-300 bg-orange-50 px-2 py-1 rounded hover:bg-orange-100">
-                    <ArrowUpCircle size={12} /> Saída
+                  <button
+                    onClick={() => historicoMaterialId === m.id ? setHistoricoMaterialId(null) : abrirHistorico(m.id)}
+                    className="flex items-center justify-center gap-1 text-[11px] text-gray-600 border border-gray-300 bg-gray-50 py-1.5 rounded-lg hover:bg-gray-100"
+                  >
+                    <History size={11} /> Histórico
                   </button>
-                  {role === "gestor" && (
-                    <button onClick={() => abrirEdicao(m)}
-                      className="flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
-                      <Pencil size={12} /> Editar
+                  {role === "gestor" ? (
+                    <button
+                      onClick={() => abrirEdicao(m)}
+                      className="flex items-center justify-center gap-1 text-[11px] text-blue-700 border border-blue-300 bg-blue-50 py-1.5 rounded-lg hover:bg-blue-100"
+                    >
+                      <Pencil size={11} /> Editar
                     </button>
+                  ) : (
+                    <div />
                   )}
                 </div>
               </div>
-              <div className="bg-gray-200 rounded-full h-2">
-                <div className={`${color} h-2 rounded-full`} style={{ width: `${pct}%` }} />
-              </div>
-
-              {movMaterialId === m.id && (
-                <form onSubmit={salvarMovimento} className="mt-3 border-t pt-3 space-y-3">
-                  <h3 className="text-xs font-semibold text-gray-700">
-                    {movForm.tipo === "ENTRADA" ? "Registrar entrada no estoque" : "Registrar saída do estoque"}
-                  </h3>
-                  {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade</label>
-                      <input required type="number" step="0.01" value={movForm.quantidade}
-                        onChange={(e) => setMovForm((f) => ({ ...f, quantidade: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
-                      <input required type="date" value={movForm.data}
-                        onChange={(e) => setMovForm((f) => ({ ...f, data: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
-                        {movForm.tipo === "SAIDA" ? "Ativo destino (opcional)" : "Ativo de origem (opcional)"}
-                      </label>
-                      <select value={movForm.ativo_id} onChange={(e) => setMovForm((f) => ({ ...f, ativo_id: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                        <option value="">Sem ativo / uso geral</option>
-                        {ativos.map((a) => (
-                          <option key={a.id} value={a.id}>{a.codigo_interno}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Observação (opcional)</label>
-                      <input value={movForm.observacao} onChange={(e) => setMovForm((f) => ({ ...f, observacao: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button disabled={movSalvando} type="submit"
-                      className="bg-seagro text-white text-xs font-medium px-3 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
-                      {movSalvando ? "Salvando..." : "Confirmar"}
-                    </button>
-                    <button type="button" onClick={cancelarMovimento}
-                      className="text-xs px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {historicoMaterialId === m.id && (
-                <div className="mt-3 border-t pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold text-gray-700">Histórico de movimentações</h3>
-                    <button onClick={() => setHistoricoMaterialId(null)} className="text-xs text-gray-500 hover:underline">Fechar</button>
-                  </div>
-                  {historico.length === 0 && <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>}
-                  <ul className="space-y-1">
-                    {historico.map((mov) => (
-                      <li key={mov.id} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 pb-1">
-                        <span>
-                          {new Date(mov.data).toLocaleDateString("pt-BR")} — {mov.tipo === "ENTRADA" ? "Entrada" : "Saída"} de {mov.quantidade} {m.unidade}
-                          {mov.ativo_id ? ` → ${ativoLabel(mov.ativo_id)}` : ""}
-                          {mov.observacao ? ` (${mov.observacao})` : ""}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           )
         })}
-        {materiais.length === 0 && <p className="text-gray-400">Nenhum material cadastrado ainda.</p>}
+        {materiais.length === 0 && (
+          <p className="col-span-4 text-gray-400 text-sm">Nenhum material cadastrado ainda.</p>
+        )}
       </div>
+
+      {/* Painel de movimentação (full-width abaixo do grid) */}
+      {movMaterialId && (() => {
+        const m = materiais.find((x) => x.id === movMaterialId)!
+        return (
+          <form onSubmit={salvarMovimento} className="mt-4 bg-white rounded-xl shadow border border-seagro p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700">
+                {movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — {m.nome}
+              </h3>
+              <button type="button" onClick={cancelarMovimento} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
+            </div>
+            {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade ({m.unidade})</label>
+                <input required type="number" step="0.01" value={movForm.quantidade}
+                  onChange={(e) => setMovForm((f) => ({ ...f, quantidade: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Data</label>
+                <input required type="date" value={movForm.data}
+                  onChange={(e) => setMovForm((f) => ({ ...f, data: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {movForm.tipo === "SAIDA" ? "Ativo destino (opcional)" : "Ativo de origem (opcional)"}
+                </label>
+                <select value={movForm.ativo_id} onChange={(e) => setMovForm((f) => ({ ...f, ativo_id: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Sem ativo / uso geral</option>
+                  {ativos.map((a) => (
+                    <option key={a.id} value={a.id}>{a.codigo_interno}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Observação (opcional)</label>
+                <input value={movForm.observacao} onChange={(e) => setMovForm((f) => ({ ...f, observacao: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button disabled={movSalvando} type="submit"
+                className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark disabled:opacity-50">
+                {movSalvando ? "Salvando..." : "Confirmar"}
+              </button>
+              <button type="button" onClick={cancelarMovimento}
+                className="text-sm px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )
+      })()}
+
+      {/* Painel de histórico (full-width abaixo do grid) */}
+      {historicoMaterialId && (() => {
+        const m = materiais.find((x) => x.id === historicoMaterialId)!
+        return (
+          <div className="mt-4 bg-white rounded-xl shadow border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">🕐 Histórico — {m.nome}</h3>
+              <button onClick={() => setHistoricoMaterialId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
+            </div>
+            {historico.length === 0 ? (
+              <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {historico.map((mov) => (
+                  <li key={mov.id} className="text-xs text-gray-600 flex justify-between border-b border-gray-100 pb-1.5">
+                    <span>
+                      <span className={mov.tipo === "ENTRADA" ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
+                        {mov.tipo === "ENTRADA" ? "↓ Entrada" : "↑ Saída"}
+                      </span>
+                      {" "}{mov.quantidade} {m.unidade}
+                      {mov.ativo_id ? ` · ${ativoLabel(mov.ativo_id)}` : ""}
+                      {mov.observacao ? ` · ${mov.observacao}` : ""}
+                    </span>
+                    <span className="text-gray-400 shrink-0 ml-2">{new Date(mov.data).toLocaleDateString("pt-BR")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
