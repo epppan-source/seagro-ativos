@@ -397,7 +397,7 @@ export default function MateriaisPage() {
 
       {/* Grid de cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {materiais.map((m) => {
+        {[...materiais].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((m) => {
           const pct = Math.min((m.quantidade_atual / (m.quantidade_minima * 2 || 1)) * 100, 100)
           const semEstoque = m.quantidade_atual === 0
           const baixo = !semEstoque && m.quantidade_atual <= m.quantidade_minima
