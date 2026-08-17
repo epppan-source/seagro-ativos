@@ -162,3 +162,12 @@ class EmailService:
             "material_nome": material_nome, "quantidade_atual": quantidade_atual, "quantidade_minima": quantidade_minima,
         })
         await self._enviar(email_gestor, f"Estoque baixo - {material_nome}", html)
+
+    async def enviar_alerta_estoque_diario(self, email_gestor: str, itens: list[dict]):
+        """Resumo diário consolidado (Materiais + Peças) — um único e-mail por gestor,
+        em vez de um e-mail por item, conforme varredura da cron das 07:15.
+        `itens` é uma lista de dicts: {"nome", "tipo" (Material/Peça), "quantidade_atual", "quantidade_minima"}.
+        """
+        html = self._renderizar("alerta_estoque_baixo_diario.html", {"itens": itens})
+        assunto = f"Estoque baixo — {len(itens)} {'item' if len(itens) == 1 else 'itens'} (resumo diário)"
+        await self._enviar(email_gestor, assunto, html)
