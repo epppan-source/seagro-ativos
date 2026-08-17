@@ -4,6 +4,7 @@ from sqlalchemy import select
 from app.database import AsyncSessionLocal
 from app.models.manutencao import Manutencao, StatusManutencao
 from app.models.material import Material
+from app.models.peca_reposicao import PecaReposicao
 from app.models.funcionario import Funcionario, RoleFuncionario
 from app.services.email_service import EmailService
 
@@ -32,15 +33,36 @@ async def verificar_manutencoes_proximas():
 
 
 async def verificar_estoque_baixo():
+    """Varredura diária (cron 07:15): junta Materiais + Peças de Reposição com
+    estoque no mínimo ou abaixo e manda UM e-mail consolidado por gestor,
+    em vez de um e-mail por item (reduz ruído na caixa de entrada).
+    """
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(Material).where(Material.quantidade_atual <= Material.quantidade_minima, Material.ativo == True))
-        materiais = result.scalars().all()
-        if not materiais:
+        result_materiais = await db.execute(
+            select(Material).where(Material.quantidade_atual <= Material.quantidade_minima, Material.ativo == True)
+        )
+        materiais = result_materiais.scalars().all()
+
+        result_pecas = await db.execute(
+            select(PecaReposicao).where(PecaReposicao.quantidade_atual <= PecaReposicao.quantidade_minima, PecaReposicao.ativo == True)
+        )
+        pecas = result_pecas.scalars().all()
+
+        if not materiais and not pecas:
             return
+
+        itens = [
+            {"nome": mat.nome, "tipo": "Material", "quantidade_atual": mat.quantidade_atual, "quantidade_minima": mat.quantidade_minima}
+            for mat in materiais
+        ] + [
+            {"nome": peca.nome, "tipo": "Peça", "quantidade_atual": peca.quantidade_atual, "quantidade_minima": peca.quantidade_minima}
+            for peca in pecas
+        ]
+        itens.sort(key=lambda i: i["nome"])
+
         gestores = (await db.execute(select(Funcionario).where(Funcionario.role == RoleFuncionario.gestor))).scalars().all()
-        for mat in materiais:
-            for gestor in gestores:
-                await email_service.enviar_alerta_estoque_baixo(gestor.email, mat.nome, mat.quantidade_atual, mat.quantidade_minima)
+        for gestor in gestores:
+            await email_service.enviar_alerta_estoque_diario(gestor.email, itens)
 
 
 def iniciar_scheduler():
