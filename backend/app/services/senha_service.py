@@ -1,5 +1,6 @@
 import re
 import secrets
+import string
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -16,6 +17,13 @@ def _validar_senha(senha: str) -> None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A senha deve ter ao menos 1 letra maiúscula")
     if not re.search(r"[0-9]", senha):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "A senha deve ter ao menos 1 número")
+
+
+def gerar_senha_provisoria() -> str:
+    """Gera uma senha provisória aleatória que já cumpre as regras de _validar_senha."""
+    letras = "".join(secrets.choice(string.ascii_lowercase) for _ in range(6))
+    numeros = "".join(secrets.choice(string.digits) for _ in range(3))
+    return letras.capitalize() + numeros
 
 
 class SenhaService:
@@ -58,3 +66,16 @@ class SenhaService:
         usuario.reset_token_expira_em = None
         await self.db.commit()
         return {"mensagem": "Senha redefinida com sucesso"}
+
+    async def resetar_senha_admin(self, funcionario_id) -> dict:
+        """Gestor reseta a senha de um funcionário sem depender de e-mail. Retorna a senha em texto puro (uma única vez) para o gestor repassar."""
+        funcionario = await self.db.get(Funcionario, funcionario_id)
+        if not funcionario:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Funcionário não encontrado")
+        nova_senha = gerar_senha_provisoria()
+        funcionario.senha_hash = gerar_hash_senha(nova_senha)
+        funcionario.deve_trocar_senha = True
+        funcionario.reset_token = None
+        funcionario.reset_token_expira_em = None
+        await self.db.commit()
+        return {"mensagem": "Senha redefinida com sucesso", "senha_provisoria": nova_senha}
