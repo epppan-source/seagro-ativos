@@ -28,6 +28,7 @@ interface FormState {
 }
 
 interface EditState {
+  login: string
   nome_completo: string
   cargo: string
   telefone: string
@@ -60,6 +61,8 @@ export default function FuncionariosPage() {
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
   const [desativando, setDesativando] = useState(false)
   const [erroEdicao, setErroEdicao] = useState("")
+  const [resetandoSenha, setResetandoSenha] = useState(false)
+  const [senhaResetada, setSenhaResetada] = useState("")
 
   function carregar() {
     api.get("/api/funcionarios").then((res) => setLista(res.data)).catch(() => {})
@@ -94,8 +97,10 @@ export default function FuncionariosPage() {
   function abrirEdicao(f: Funcionario) {
     setMostrarForm(false)
     setErroEdicao("")
+    setSenhaResetada("")
     setEditandoId(f.id)
     setEditForm({
+      login: f.login,
       nome_completo: f.nome_completo,
       cargo: f.cargo,
       telefone: f.telefone || "",
@@ -115,6 +120,7 @@ export default function FuncionariosPage() {
     setEditandoId(null)
     setEditForm(null)
     setErroEdicao("")
+    setSenhaResetada("")
   }
 
   function atualizarCampoEdicao(campo: keyof EditState, valor: string) {
@@ -153,6 +159,25 @@ export default function FuncionariosPage() {
       setErroEdicao(err?.response?.data?.detail || "Erro ao desativar funcionario.")
     } finally {
       setDesativando(false)
+    }
+  }
+
+  async function resetarSenha() {
+    if (!editandoId) return
+    const nome = editForm?.nome_completo || "este funcionario"
+    if (!window.confirm(`Gerar uma senha provisoria nova para ${nome}? A senha antiga dele deixa de funcionar na hora.`)) {
+      return
+    }
+    setResetandoSenha(true)
+    setErroEdicao("")
+    setSenhaResetada("")
+    try {
+      const { data } = await api.post(`/api/funcionarios/${editandoId}/resetar-senha`)
+      setSenhaResetada(data.senha_provisoria)
+    } catch (err: any) {
+      setErroEdicao(err?.response?.data?.detail || "Erro ao resetar senha.")
+    } finally {
+      setResetandoSenha(false)
     }
   }
 
@@ -235,7 +260,13 @@ export default function FuncionariosPage() {
             <h2 className="text-sm font-semibold text-gray-700">Editar funcionario</h2>
             <button type="button" onClick={fecharEdicao} className="text-xs text-gray-500 hover:underline">Fechar</button>
           </div>
+          <p className="text-xs text-gray-500">Login de acesso deste funcionario: <span className="font-mono font-semibold text-gray-700">{editForm.login}</span> (é isso que ele deve digitar no campo "Login" da tela de entrada, não o e-mail)</p>
           {erroEdicao && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erroEdicao}</div>}
+          {senhaResetada && (
+            <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3">
+              Senha redefinida! Login: <span className="font-mono font-semibold">{editForm.login}</span> / Senha provisoria: <span className="font-mono font-semibold">{senhaResetada}</span>. Passe essa senha pra ele por WhatsApp ou verbalmente — ele vai trocar por uma nova no primeiro acesso.
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Foto</label>
             <FotoUpload url={editForm.foto_url} endpoint={`/api/uploads/funcionarios/${editandoId}/foto`} onUploaded={fotoAtualizada} redondo />
@@ -274,6 +305,10 @@ export default function FuncionariosPage() {
             <button disabled={salvandoEdicao} type="submit"
               className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
               {salvandoEdicao ? "Salvando..." : "Salvar alteracoes"}
+            </button>
+            <button type="button" disabled={resetandoSenha} onClick={resetarSenha}
+              className="bg-blue-50 text-blue-700 border border-blue-300 text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-100 disabled:opacity-50">
+              {resetandoSenha ? "Gerando..." : "Resetar senha"}
             </button>
             <button type="button" disabled={desativando} onClick={desativarFuncionario}
               className="bg-red-50 text-red-700 border border-red-300 text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-100 disabled:opacity-50">
