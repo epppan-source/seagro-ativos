@@ -7,7 +7,7 @@ from app.dependencies import get_current_user, require_role
 from app.models.funcionario import Funcionario, RoleFuncionario
 from app.schemas.funcionario import FuncionarioCreate, FuncionarioUpdate, FuncionarioOut
 from app.utils.security import gerar_hash_senha
-from app.services.senha_service import _validar_senha
+from app.services.senha_service import SenhaService, _validar_senha
 
 router = APIRouter(prefix="/api/funcionarios", tags=["funcionarios"])
 
@@ -47,3 +47,8 @@ async def atualizar(funcionario_id: uuid.UUID, dados: FuncionarioUpdate, db: Asy
         setattr(funcionario, campo, valor)
     await db.commit()
     return funcionario
+
+
+@router.post("/{funcionario_id}/resetar-senha", dependencies=[Depends(require_role("gestor"))])
+async def resetar_senha(funcionario_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    return await SenhaService(db).resetar_senha_admin(funcionario_id)
