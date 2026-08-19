@@ -131,21 +131,26 @@ export default function TransferenciasPage() {
             inversionAttempts: "dontInvert",
           })
           if (code?.data) {
-            // Extrai UUID da URL: .../ativos/{uuid}
-            const match = code.data.match(/\/ativos\/([0-9a-f-]{36})/i)
+            // Extrai o codigo da URL: .../codigo/{codigo} (formato real das etiquetas impressas)
+            const match = code.data.match(/\/codigo\/([A-Za-z0-9-]+)/i)
             if (match) {
-              const uuid = match[1]
-              const encontrado = ativos.find((a) => a.id === uuid)
-              if (encontrado) {
-                pararCamera()
-                setAtivoId(encontrado.id)
-                setAtivoDetectado(encontrado)
-                setScanStatus("found")
-                setScanMsg(`${encontrado.codigo_interno} — ${encontrado.modelo}`)
-                return
-              } else {
-                setScanMsg("QR Code lido, mas ativo nao encontrado no sistema.")
-              }
+              const codigoLido = match[1]
+              setScanMsg("QR Code lido, verificando...")
+              api
+                .get(`/api/ativos/codigo/${codigoLido}`)
+                .then((res) => {
+                  const encontrado = res.data
+                  pararCamera()
+                  setAtivoId(encontrado.id)
+                  setAtivoDetectado(encontrado)
+                  setScanStatus("found")
+                  setScanMsg(`${encontrado.codigo_interno} — ${encontrado.modelo}`)
+                })
+                .catch(() => {
+                  setScanMsg("QR Code lido, mas ativo nao encontrado no sistema.")
+                  animRef.current = requestAnimationFrame(loopScan)
+                })
+              return
             } else {
               setScanMsg("QR Code invalido. Aponte para a etiqueta do equipamento.")
             }
