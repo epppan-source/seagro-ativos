@@ -5,6 +5,7 @@ import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
 import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
 import FotoUpload from "@/components/FotoUpload"
+import SidePanel from "@/components/SidePanel"
 
 interface Material {
   id: string
@@ -169,6 +170,9 @@ function MateriaisPageInner() {
       responsavel_id: m.responsavel_id || "",
     })
     setMostrarForm(true)
+    // Fecha os outros painéis pra não abrir dois ao mesmo tempo
+    setMovMaterialId(null)
+    setHistoricoMaterialId(null)
   }
 
   function fotoAtualizada(url: string) {
@@ -257,6 +261,7 @@ function MateriaisPageInner() {
     setMovForm({ ...MOV_INICIAL, tipo })
     setMovErro("")
     setHistoricoMaterialId(null)
+    setMostrarForm(false)
   }
 
   function cancelarMovimento() {
@@ -296,6 +301,7 @@ function MateriaisPageInner() {
   function abrirHistorico(materialId: string) {
     setHistoricoMaterialId(materialId)
     setMovMaterialId(null)
+    setMostrarForm(false)
     api.get(`/api/materiais/${materialId}/movimentos`)
       .then((res) => setHistorico(res.data))
       .catch(() => setHistorico([]))
@@ -311,7 +317,7 @@ function MateriaisPageInner() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">Materiais</h1>
         <button
-          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true) } }}
+          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true); setMovMaterialId(null); setHistoricoMaterialId(null) } }}
           className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
           {mostrarForm ? "Cancelar" : "+ Novo Material"}
@@ -322,9 +328,8 @@ function MateriaisPageInner() {
         <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4">{sucesso}</div>
       )}
 
-      {mostrarForm && (
-        <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Material" : "Novo Material"}</h2>
+      <SidePanel aberto={mostrarForm} onFechar={cancelarForm} titulo={editandoId ? "Editar Material" : "Novo Material"}>
+        <form onSubmit={salvar} className="space-y-4">
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
           {editandoId && (
             <div>
@@ -413,7 +418,7 @@ function MateriaisPageInner() {
             {salvando ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar"}
           </button>
         </form>
-      )}
+      </SidePanel>
 
       {/* Grid de cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -500,17 +505,16 @@ function MateriaisPageInner() {
         )}
       </div>
 
-      {/* Painel de movimentação (full-width abaixo do grid) */}
+      {/* Painel de movimentação (side panel) */}
       {movMaterialId && (() => {
         const m = materiais.find((x) => x.id === movMaterialId)!
         return (
-          <form onSubmit={salvarMovimento} className="mt-4 bg-white rounded-xl shadow border border-seagro p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">
-                {movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — {m.nome}
-              </h3>
-              <button type="button" onClick={cancelarMovimento} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
-            </div>
+          <SidePanel
+            aberto={!!movMaterialId}
+            onFechar={cancelarMovimento}
+            titulo={`${movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — ${m.nome}`}
+          >
+          <form onSubmit={salvarMovimento} className="space-y-3">
             {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -554,18 +558,15 @@ function MateriaisPageInner() {
               </button>
             </div>
           </form>
+          </SidePanel>
         )
       })()}
 
-      {/* Painel de histórico (full-width abaixo do grid) */}
+      {/* Painel de histórico (side panel) */}
       {historicoMaterialId && (() => {
         const m = materiais.find((x) => x.id === historicoMaterialId)!
         return (
-          <div className="mt-4 bg-white rounded-xl shadow border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">🕐 Histórico — {m.nome}</h3>
-              <button onClick={() => setHistoricoMaterialId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
-            </div>
+          <SidePanel aberto={!!historicoMaterialId} onFechar={() => setHistoricoMaterialId(null)} titulo={`🕐 Histórico — ${m.nome}`}>
             {historico.length === 0 ? (
               <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>
             ) : (
@@ -585,7 +586,7 @@ function MateriaisPageInner() {
                 ))}
               </ul>
             )}
-          </div>
+          </SidePanel>
         )
       })()}
     </div>
