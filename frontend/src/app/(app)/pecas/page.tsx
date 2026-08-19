@@ -568,7 +568,7 @@ export default function PecasReposicaoPage() {
                       {mov.ativo_id ? ` · instalada em ${ativoLabel(mov.ativo_id)}` : ""}
                       {mov.observacao ? ` · ${mov.observacao}` : ""}
                     </span>
-                    <span className="text-gray-400 shrink-0 ml-2">{new Date(mov.data).toLocaleDateString("pt-BR")}</span>
+                       <span className="text-gray-400 shrink-0 ml-2">{new Date(mov.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
                   </li>
                 ))}
               </ul>
