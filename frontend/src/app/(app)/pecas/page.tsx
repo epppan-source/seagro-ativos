@@ -5,6 +5,7 @@ import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
 import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
 import FotoUpload from "@/components/FotoUpload"
+import SidePanel from "@/components/SidePanel"
 
 interface Peca {
   id: string
@@ -169,6 +170,9 @@ function PecasReposicaoPageInner() {
       responsavel_id: p.responsavel_id || "",
     })
     setMostrarForm(true)
+    // Fecha os outros painéis pra não abrir dois ao mesmo tempo
+    setMovPecaId(null)
+    setHistoricoPecaId(null)
   }
 
   function fotoAtualizada(url: string) {
@@ -257,6 +261,7 @@ function PecasReposicaoPageInner() {
     setMovForm({ ...MOV_INICIAL, tipo })
     setMovErro("")
     setHistoricoPecaId(null)
+    setMostrarForm(false)
   }
 
   function cancelarMovimento() {
@@ -300,6 +305,7 @@ function PecasReposicaoPageInner() {
   function abrirHistorico(pecaId: string) {
     setHistoricoPecaId(pecaId)
     setMovPecaId(null)
+    setMostrarForm(false)
     api.get(`/api/pecas/${pecaId}/movimentos`)
       .then((res) => setHistorico(res.data))
       .catch(() => setHistorico([]))
@@ -315,7 +321,7 @@ function PecasReposicaoPageInner() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-800">Peças de Reposição</h1>
         <button
-          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true) } }}
+          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true); setMovPecaId(null); setHistoricoPecaId(null) } }}
           className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
           {mostrarForm ? "Cancelar" : "+ Nova Peça"}
@@ -331,9 +337,8 @@ function PecasReposicaoPageInner() {
         <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4">{sucesso}</div>
       )}
 
-      {mostrarForm && (
-        <form onSubmit={salvar} className="bg-white rounded-lg shadow p-5 mb-6 space-y-4">
-          <h2 className="text-sm font-semibold text-gray-700">{editandoId ? "Editar Peça" : "Nova Peça de Reposição"}</h2>
+      <SidePanel aberto={mostrarForm} onFechar={cancelarForm} titulo={editandoId ? "Editar Peça" : "Nova Peça de Reposição"}>
+        <form onSubmit={salvar} className="space-y-4">
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
           {editandoId && (
             <div>
@@ -421,7 +426,7 @@ function PecasReposicaoPageInner() {
             {salvando ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar"}
           </button>
         </form>
-      )}
+      </SidePanel>
 
       {/* Grid de cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -508,17 +513,16 @@ function PecasReposicaoPageInner() {
         )}
       </div>
 
-      {/* Painel de movimentação (full-width abaixo do grid) */}
+      {/* Painel de movimentação (side panel) */}
       {movPecaId && (() => {
         const p = pecas.find((x) => x.id === movPecaId)!
         return (
-          <form onSubmit={salvarMovimento} className="mt-4 bg-white rounded-xl shadow border border-seagro p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">
-                {movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — {p.nome}
-              </h3>
-              <button type="button" onClick={cancelarMovimento} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
-            </div>
+          <SidePanel
+            aberto={!!movPecaId}
+            onFechar={cancelarMovimento}
+            titulo={`${movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — ${p.nome}`}
+          >
+          <form onSubmit={salvarMovimento} className="space-y-3">
             {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -562,18 +566,15 @@ function PecasReposicaoPageInner() {
               </button>
             </div>
           </form>
+          </SidePanel>
         )
       })()}
 
-      {/* Painel de histórico (full-width abaixo do grid) */}
+      {/* Painel de histórico (side panel) */}
       {historicoPecaId && (() => {
         const p = pecas.find((x) => x.id === historicoPecaId)!
         return (
-          <div className="mt-4 bg-white rounded-xl shadow border border-gray-200 p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700">🕐 Histórico — {p.nome}</h3>
-              <button onClick={() => setHistoricoPecaId(null)} className="text-xs text-gray-400 hover:text-gray-600">✕ Fechar</button>
-            </div>
+          <SidePanel aberto={!!historicoPecaId} onFechar={() => setHistoricoPecaId(null)} titulo={`🕐 Histórico — ${p.nome}`}>
             {historico.length === 0 ? (
               <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>
             ) : (
@@ -593,7 +594,7 @@ function PecasReposicaoPageInner() {
                 ))}
               </ul>
             )}
-          </div>
+          </SidePanel>
         )
       })()}
     </div>
