@@ -1,5 +1,6 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import api from "@/lib/api"
 import { getRole } from "@/lib/auth"
 import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
@@ -80,6 +81,15 @@ const MOV_INICIAL: MovForm = {
 }
 
 export default function MateriaisPage() {
+  return (
+    <Suspense fallback={null}>
+      <MateriaisPageInner />
+    </Suspense>
+  )
+}
+
+function MateriaisPageInner() {
+  const searchParams = useSearchParams()
   const [materiais, setMateriais] = useState<Material[]>([])
   const [tipos, setTipos] = useState<Tipo[]>([])
   const [ativos, setAtivos] = useState<Ativo[]>([])
@@ -128,6 +138,16 @@ export default function MateriaisPage() {
     carregarAtivos()
     carregarFuncionarios()
   }, [])
+
+  // Abre a edição automaticamente quando chega com ?editar=ID na URL (ex: clique vindo do Dashboard)
+  useEffect(() => {
+    const idParaEditar = searchParams.get("editar")
+    if (idParaEditar && materiais.length > 0) {
+      const item = materiais.find((m) => m.id === idParaEditar)
+      if (item) abrirEdicao(item)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, materiais])
 
   function atualizarCampo(campo: keyof FormState, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }))
