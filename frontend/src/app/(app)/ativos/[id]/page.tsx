@@ -345,7 +345,7 @@ export default function FichaAtivoPage() {
       {!ativo.ativo && (
         <div className="bg-gray-100 border border-gray-300 text-gray-600 text-sm rounded-lg p-3 mb-4">
           {ativo.aposentado_em
-            ? `Este ativo foi aposentado em ${new Date(ativo.aposentado_em).toLocaleDateString("pt-BR")}.${ativo.motivo_aposentadoria ? ` Motivo: ${ativo.motivo_aposentadoria}` : ""}`
+            ? `Este ativo foi aposentado em ${new Date(ativo.aposentado_em + "T12:00:00").toLocaleDateString("pt-BR")}.${ativo.motivo_aposentadoria ? ` Motivo: ${ativo.motivo_aposentadoria}` : ""}`
             : "Este ativo está desativado."}
         </div>
       )}
