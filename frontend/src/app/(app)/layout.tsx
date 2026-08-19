@@ -144,13 +144,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* ── CONTEÚDO PRINCIPAL ── */}
-      <main className="flex-1 bg-gray-50 p-4 md:p-6 pt-[4.5rem] md:pt-6 pb-24 md:pb-6 min-h-screen">
+      <main
+        className="flex-1 bg-gray-50 p-4 md:p-6 pt-[4.5rem] md:pt-6 md:pb-6 min-h-[100dvh]"
+        style={role === "funcionario" ? { paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" } : undefined}
+      >
         {children}
       </main>
 
       {/* ── MOBILE: barra de navegação inferior (funcionário) ── */}
       {role === "funcionario" && (
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-seagro-dark border-t border-white/10 flex safe-area-pb">
+        <nav
+          className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-seagro-dark border-t border-white/10 flex"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
           {NAV_FUNCIONARIO.map((item) => {
             const active = pathname.startsWith(item.href)
             return (
