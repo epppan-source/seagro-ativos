@@ -7,7 +7,7 @@ import { Pencil, ArrowDownCircle, ArrowUpCircle, History } from "lucide-react"
 import FotoUpload from "@/components/FotoUpload"
 import SidePanel from "@/components/SidePanel"
 
-interface Peca {
+interface Material {
   id: string
   nome: string
   codigo: string
@@ -46,7 +46,7 @@ interface Movimento {
 interface FormState {
   nome: string
   codigo: string
-  tipo_peca_reposicao_id: string
+  tipo_material_id: string
   descricao: string
   unidade: string
   quantidade_minima: string
@@ -57,7 +57,7 @@ interface FormState {
 const FORM_INICIAL: FormState = {
   nome: "",
   codigo: "",
-  tipo_peca_reposicao_id: "",
+  tipo_material_id: "",
   descricao: "",
   unidade: "un",
   quantidade_minima: "0",
@@ -81,17 +81,17 @@ const MOV_INICIAL: MovForm = {
   observacao: "",
 }
 
-export default function PecasReposicaoPage() {
+export default function MateriaisPage() {
   return (
     <Suspense fallback={null}>
-      <PecasReposicaoPageInner />
+      <MateriaisPageInner />
     </Suspense>
   )
 }
 
-function PecasReposicaoPageInner() {
+function MateriaisPageInner() {
   const searchParams = useSearchParams()
-  const [pecas, setPecas] = useState<Peca[]>([])
+  const [materiais, setMateriais] = useState<Material[]>([])
   const [tipos, setTipos] = useState<Tipo[]>([])
   const [ativos, setAtivos] = useState<Ativo[]>([])
   const [role, setRole] = useState<string | null>(null)
@@ -108,20 +108,20 @@ function PecasReposicaoPageInner() {
   const [salvandoTipo, setSalvandoTipo] = useState(false)
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
 
-  const [movPecaId, setMovPecaId] = useState<string | null>(null)
+  const [movMaterialId, setMovMaterialId] = useState<string | null>(null)
   const [movForm, setMovForm] = useState<MovForm>(MOV_INICIAL)
   const [movSalvando, setMovSalvando] = useState(false)
   const [movErro, setMovErro] = useState("")
 
-  const [historicoPecaId, setHistoricoPecaId] = useState<string | null>(null)
+  const [historicoMaterialId, setHistoricoMaterialId] = useState<string | null>(null)
   const [historico, setHistorico] = useState<Movimento[]>([])
 
-  function carregarPecas() {
-    api.get("/api/pecas").then((res) => setPecas(res.data)).catch(() => {})
+  function carregarMateriais() {
+    api.get("/api/materiais").then((res) => setMateriais(res.data)).catch(() => {})
   }
 
   function carregarTipos() {
-    api.get("/api/tipos/peca-reposicao").then((res) => setTipos(res.data)).catch(() => {})
+    api.get("/api/tipos/material").then((res) => setTipos(res.data)).catch(() => {})
   }
 
   function carregarAtivos() {
@@ -134,7 +134,7 @@ function PecasReposicaoPageInner() {
 
   useEffect(() => {
     setRole(getRole())
-    carregarPecas()
+    carregarMateriais()
     carregarTipos()
     carregarAtivos()
     carregarFuncionarios()
@@ -143,41 +143,41 @@ function PecasReposicaoPageInner() {
   // Abre a edição automaticamente quando chega com ?editar=ID na URL (ex: clique vindo do Dashboard)
   useEffect(() => {
     const idParaEditar = searchParams.get("editar")
-    if (idParaEditar && pecas.length > 0) {
-      const item = pecas.find((p) => p.id === idParaEditar)
+    if (idParaEditar && materiais.length > 0) {
+      const item = materiais.find((m) => m.id === idParaEditar)
       if (item) abrirEdicao(item)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, pecas])
+  }, [searchParams, materiais])
 
   function atualizarCampo(campo: keyof FormState, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }))
   }
 
-  function abrirEdicao(p: Peca) {
-    setEditandoId(p.id)
-    setFotoUrlEdicao(p.foto_url || null)
+  function abrirEdicao(m: Material) {
+    setEditandoId(m.id)
+    setFotoUrlEdicao(m.foto_url || null)
     setErro("")
     setSucesso("")
     setForm({
-      nome: p.nome,
-      codigo: p.codigo,
-      tipo_peca_reposicao_id: "",
-      descricao: p.descricao || "",
-      unidade: p.unidade,
-      quantidade_minima: String(p.quantidade_minima),
-      quantidade_atual: String(p.quantidade_atual),
-      responsavel_id: p.responsavel_id || "",
+      nome: m.nome,
+      codigo: m.codigo,
+      tipo_material_id: "",
+      descricao: m.descricao || "",
+      unidade: m.unidade,
+      quantidade_minima: String(m.quantidade_minima),
+      quantidade_atual: String(m.quantidade_atual),
+      responsavel_id: m.responsavel_id || "",
     })
     setMostrarForm(true)
     // Fecha os outros painéis pra não abrir dois ao mesmo tempo
-    setMovPecaId(null)
-    setHistoricoPecaId(null)
+    setMovMaterialId(null)
+    setHistoricoMaterialId(null)
   }
 
   function fotoAtualizada(url: string) {
     setFotoUrlEdicao(url)
-    setPecas((l) => l.map((x) => (x.id === editandoId ? { ...x, foto_url: url } : x)))
+    setMateriais((l) => l.map((x) => (x.id === editandoId ? { ...x, foto_url: url } : x)))
   }
 
   function cancelarForm() {
@@ -193,13 +193,13 @@ function PecasReposicaoPageInner() {
     if (!novoTipoNome.trim()) return
     setSalvandoTipo(true)
     try {
-      const res = await api.post("/api/tipos/peca-reposicao", { nome: novoTipoNome.trim() })
+      const res = await api.post("/api/tipos/material", { nome: novoTipoNome.trim() })
       setNovoTipoNome("")
       setMostrarNovoTipo(false)
       await carregarTipos()
-      setForm((f) => ({ ...f, tipo_peca_reposicao_id: res.data.id }))
+      setForm((f) => ({ ...f, tipo_material_id: res.data.id }))
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || "Erro ao criar tipo de peça.")
+      setErro(err?.response?.data?.detail || "Erro ao criar tipo de material.")
     } finally {
       setSalvandoTipo(false)
     }
@@ -213,72 +213,68 @@ function PecasReposicaoPageInner() {
     if (editandoId) {
       setSalvando(true)
       try {
-        await api.put(`/api/pecas/${editandoId}`, {
+        await api.put(`/api/materiais/${editandoId}`, {
           nome: form.nome,
           descricao: form.descricao || null,
           quantidade_minima: form.quantidade_minima,
           responsavel_id: form.responsavel_id || null,
         })
-        setSucesso("Peça atualizada.")
+        setSucesso("Material atualizado.")
         cancelarForm()
-        carregarPecas()
+        carregarMateriais()
       } catch (err: any) {
-        setErro(err?.response?.data?.detail || "Erro ao atualizar peça.")
+        setErro(err?.response?.data?.detail || "Erro ao atualizar material.")
       } finally {
         setSalvando(false)
       }
       return
     }
 
-    if (!form.tipo_peca_reposicao_id) {
-      setErro("Selecione ou cadastre um tipo de peça.")
+    if (!form.tipo_material_id) {
+      setErro("Selecione ou cadastre um tipo de material.")
       return
     }
     setSalvando(true)
     try {
-      await api.post("/api/pecas", {
+      await api.post("/api/materiais", {
         nome: form.nome,
         codigo: form.codigo,
-        tipo_peca_reposicao_id: form.tipo_peca_reposicao_id,
+        tipo_material_id: form.tipo_material_id,
         descricao: form.descricao || null,
         unidade: form.unidade,
         quantidade_minima: form.quantidade_minima,
         quantidade_atual: form.quantidade_atual,
       })
-      setSucesso("Peça cadastrada.")
+      setSucesso("Material cadastrado.")
       setForm(FORM_INICIAL)
       setMostrarForm(false)
-      carregarPecas()
+      carregarMateriais()
     } catch (err: any) {
-      setErro(err?.response?.data?.detail || "Erro ao cadastrar peça.")
+      setErro(err?.response?.data?.detail || "Erro ao cadastrar material.")
     } finally {
       setSalvando(false)
     }
   }
 
-  function abrirMovimento(pecaId: string, tipo: "ENTRADA" | "SAIDA") {
-    setMovPecaId(pecaId)
+  function abrirMovimento(materialId: string, tipo: "ENTRADA" | "SAIDA") {
+    setMovMaterialId(materialId)
     setMovForm({ ...MOV_INICIAL, tipo })
     setMovErro("")
-    setHistoricoPecaId(null)
+    setHistoricoMaterialId(null)
     setMostrarForm(false)
   }
 
   function cancelarMovimento() {
-    setMovPecaId(null)
+    setMovMaterialId(null)
     setMovForm(MOV_INICIAL)
     setMovErro("")
   }
 
   async function salvarMovimento(e: React.FormEvent) {
     e.preventDefault()
-    if (!movPecaId) return
+    if (!movMaterialId) return
     setMovErro("")
 
-    if (movForm.tipo === "SAIDA" && !movForm.ativo_id) {
-      setMovErro("Para SAIDA, selecione em qual Ativo a peça foi instalada (ou marque \"Sem ativo / outro uso\").")
-      return
-    }
     if (!movForm.quantidade || Number(movForm.quantidade) <= 0) {
       setMovErro("Informe uma quantidade válida.")
       return
@@ -286,7 +282,7 @@ function PecasReposicaoPageInner() {
 
     setMovSalvando(true)
     try {
-      await api.post(`/api/pecas/${movPecaId}/movimento`, {
+      await api.post(`/api/materiais/${movMaterialId}/movimento`, {
         tipo: movForm.tipo,
         quantidade: movForm.quantidade,
         data: movForm.data,
@@ -294,7 +290,7 @@ function PecasReposicaoPageInner() {
         observacao: movForm.observacao || null,
       })
       cancelarMovimento()
-      carregarPecas()
+      carregarMateriais()
     } catch (err: any) {
       setMovErro(err?.response?.data?.detail || "Erro ao registrar movimento.")
     } finally {
@@ -302,11 +298,11 @@ function PecasReposicaoPageInner() {
     }
   }
 
-  function abrirHistorico(pecaId: string) {
-    setHistoricoPecaId(pecaId)
-    setMovPecaId(null)
+  function abrirHistorico(materialId: string) {
+    setHistoricoMaterialId(materialId)
+    setMovMaterialId(null)
     setMostrarForm(false)
-    api.get(`/api/pecas/${pecaId}/movimentos`)
+    api.get(`/api/materiais/${materialId}/movimentos`)
       .then((res) => setHistorico(res.data))
       .catch(() => setHistorico([]))
   }
@@ -319,38 +315,32 @@ function PecasReposicaoPageInner() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-800">Peças de Reposição</h1>
+        <h1 className="text-xl font-bold text-gray-800">Materiais</h1>
         <button
-          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true); setMovPecaId(null); setHistoricoPecaId(null) } }}
+          onClick={() => { if (mostrarForm) { cancelarForm() } else { setForm(FORM_INICIAL); setMostrarForm(true); setMovMaterialId(null); setHistoricoMaterialId(null) } }}
           className="bg-seagro text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-seagro-dark"
         >
-          {mostrarForm ? "Cancelar" : "+ Nova Peça"}
+          {mostrarForm ? "Cancelar" : "+ Novo Material"}
         </button>
       </div>
-
-      <p className="text-xs text-gray-500 mb-4">
-        Itens de reposição (correntes, roletes, resistências, etc.) com estoque controlado, separado de Materiais.
-        Ao registrar uma SAÍDA, informe em qual Ativo a peça foi instalada.
-      </p>
 
       {sucesso && (
         <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4">{sucesso}</div>
       )}
 
-      <SidePanel aberto={mostrarForm} onFechar={cancelarForm} titulo={editandoId ? "Editar Peça" : "Nova Peça de Reposição"}>
+      <SidePanel aberto={mostrarForm} onFechar={cancelarForm} titulo={editandoId ? "Editar Material" : "Novo Material"}>
         <form onSubmit={salvar} className="space-y-4">
           {erro && <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">{erro}</div>}
           {editandoId && (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Foto</label>
-              <FotoUpload url={fotoUrlEdicao} endpoint={`/api/uploads/pecas/${editandoId}/foto`} onUploaded={fotoAtualizada} />
+              <FotoUpload url={fotoUrlEdicao} endpoint={`/api/uploads/materiais/${editandoId}/foto`} onUploaded={fotoAtualizada} />
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Nome</label>
               <input required value={form.nome} onChange={(e) => atualizarCampo("nome", e.target.value)}
-                placeholder="Ex: Corrente 50.2 elo simples"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div>
@@ -360,9 +350,9 @@ function PecasReposicaoPageInner() {
             </div>
             {!editandoId && (
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de peça</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tipo de material</label>
                 <div className="flex gap-2">
-                  <select value={form.tipo_peca_reposicao_id} onChange={(e) => atualizarCampo("tipo_peca_reposicao_id", e.target.value)}
+                  <select value={form.tipo_material_id} onChange={(e) => atualizarCampo("tipo_material_id", e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">Selecione...</option>
                     {tipos.map((t) => (
@@ -377,7 +367,7 @@ function PecasReposicaoPageInner() {
                 {mostrarNovoTipo && (
                   <div className="flex gap-2 mt-2">
                     <input value={novoTipoNome} onChange={(e) => setNovoTipoNome(e.target.value)}
-                      placeholder="Nome do novo tipo (ex: Corrente, Rolete, Resistência)"
+                      placeholder="Nome do novo tipo (ex: Geomembrana PEAD)"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
                     <button type="button" disabled={salvandoTipo} onClick={criarTipo}
                       className="text-sm whitespace-nowrap px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50">
@@ -390,17 +380,19 @@ function PecasReposicaoPageInner() {
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Unidade</label>
               <input disabled={!!editandoId} value={form.unidade} onChange={(e) => atualizarCampo("unidade", e.target.value)}
-                placeholder="un, m, kg..."
+                placeholder="un, m, kg, rolo..."
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade atual{editandoId ? " (ajuste pela Movimentação)" : ""}</label>
-              <input required disabled={!!editandoId} type="number" step="0.01" value={form.quantidade_atual} onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
+              <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade atual{editandoId ? " (ajuste pelo Movimento)" : ""}</label>
+              <input required disabled={!!editandoId} type="number" step="0.01" value={form.quantidade_atual}
+                onChange={(e) => atualizarCampo("quantidade_atual", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:text-gray-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade mínima</label>
-              <input required type="number" step="0.01" value={form.quantidade_minima} onChange={(e) => atualizarCampo("quantidade_minima", e.target.value)}
+              <input required type="number" step="0.01" value={form.quantidade_minima}
+                onChange={(e) => atualizarCampo("quantidade_minima", e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
             </div>
             <div className="md:col-span-2">
@@ -430,42 +422,42 @@ function PecasReposicaoPageInner() {
 
       {/* Grid de cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {[...pecas].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p) => {
-          const pct = Math.min((p.quantidade_atual / (p.quantidade_minima * 2 || 1)) * 100, 100)
-          const semEstoque = p.quantidade_atual === 0
-          const baixo = !semEstoque && p.quantidade_atual <= p.quantidade_minima
+        {[...materiais].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((m) => {
+          const pct = Math.min((m.quantidade_atual / (m.quantidade_minima * 2 || 1)) * 100, 100)
+          const semEstoque = m.quantidade_atual === 0
+          const baixo = !semEstoque && m.quantidade_atual <= m.quantidade_minima
           const barColor = semEstoque ? "bg-red-500" : baixo ? "bg-orange-400" : "bg-green-500"
           const badgeColor = semEstoque
             ? "bg-red-100 text-red-700"
             : baixo
             ? "bg-orange-100 text-orange-700"
             : "bg-green-100 text-green-700"
-          const emFoco = movPecaId === p.id || historicoPecaId === p.id
+          const ativo = movMaterialId === m.id || historicoMaterialId === m.id
 
           return (
             <div
-              key={p.id}
-              className={`bg-white rounded-xl shadow flex flex-col overflow-hidden border-2 transition-colors ${emFoco ? "border-seagro" : "border-transparent"}`}
+              key={m.id}
+              className={`bg-white rounded-xl shadow flex flex-col overflow-hidden border-2 transition-colors ${ativo ? "border-seagro" : "border-transparent"}`}
             >
               {/* Foto ou placeholder */}
               <div className="w-full aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
-                {p.foto_url ? (
-                  <img src={p.foto_url} alt={p.nome} className="w-full h-full object-cover" />
+                {m.foto_url ? (
+                  <img src={m.foto_url} alt={m.nome} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-4xl select-none">🔧</span>
+                  <span className="text-4xl select-none">📦</span>
                 )}
               </div>
 
               {/* Conteúdo */}
               <div className="flex flex-col flex-1 p-3 gap-2">
                 <div>
-                  <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">{p.nome}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{p.codigo}</p>
+                  <p className="text-xs font-semibold text-gray-800 leading-snug line-clamp-2">{m.nome}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{m.codigo}</p>
                 </div>
 
                 {/* Badge de estoque */}
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full self-start ${badgeColor}`}>
-                  {p.quantidade_atual} / {p.quantidade_minima} {p.unidade}
+                  {m.quantidade_atual} / {m.quantidade_minima} {m.unidade}
                 </span>
 
                 {/* Barra de estoque */}
@@ -476,26 +468,26 @@ function PecasReposicaoPageInner() {
                 {/* Ações */}
                 <div className="grid grid-cols-2 gap-1 mt-auto pt-1">
                   <button
-                    onClick={() => abrirMovimento(p.id, "ENTRADA")}
+                    onClick={() => abrirMovimento(m.id, "ENTRADA")}
                     className="flex items-center justify-center gap-1 text-[11px] text-green-700 border border-green-300 bg-green-50 py-1.5 rounded-lg hover:bg-green-100"
                   >
                     <ArrowDownCircle size={11} /> Entrada
                   </button>
                   <button
-                    onClick={() => abrirMovimento(p.id, "SAIDA")}
+                    onClick={() => abrirMovimento(m.id, "SAIDA")}
                     className="flex items-center justify-center gap-1 text-[11px] text-orange-700 border border-orange-300 bg-orange-50 py-1.5 rounded-lg hover:bg-orange-100"
                   >
                     <ArrowUpCircle size={11} /> Saída
                   </button>
                   <button
-                    onClick={() => historicoPecaId === p.id ? setHistoricoPecaId(null) : abrirHistorico(p.id)}
+                    onClick={() => historicoMaterialId === m.id ? setHistoricoMaterialId(null) : abrirHistorico(m.id)}
                     className="flex items-center justify-center gap-1 text-[11px] text-gray-600 border border-gray-300 bg-gray-50 py-1.5 rounded-lg hover:bg-gray-100"
                   >
                     <History size={11} /> Histórico
                   </button>
                   {role === "gestor" ? (
                     <button
-                      onClick={() => abrirEdicao(p)}
+                      onClick={() => abrirEdicao(m)}
                       className="flex items-center justify-center gap-1 text-[11px] text-blue-700 border border-blue-300 bg-blue-50 py-1.5 rounded-lg hover:bg-blue-100"
                     >
                       <Pencil size={11} /> Editar
@@ -508,25 +500,25 @@ function PecasReposicaoPageInner() {
             </div>
           )
         })}
-        {pecas.length === 0 && (
-          <p className="col-span-4 text-gray-400 text-sm">Nenhuma peça de reposição cadastrada ainda.</p>
+        {materiais.length === 0 && (
+          <p className="col-span-4 text-gray-400 text-sm">Nenhum material cadastrado ainda.</p>
         )}
       </div>
 
       {/* Painel de movimentação (side panel) */}
-      {movPecaId && (() => {
-        const p = pecas.find((x) => x.id === movPecaId)!
+      {movMaterialId && (() => {
+        const m = materiais.find((x) => x.id === movMaterialId)!
         return (
           <SidePanel
-            aberto={!!movPecaId}
+            aberto={!!movMaterialId}
             onFechar={cancelarMovimento}
-            titulo={`${movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — ${p.nome}`}
+            titulo={`${movForm.tipo === "ENTRADA" ? "📥 Entrada de estoque" : "📤 Saída de estoque"} — ${m.nome}`}
           >
           <form onSubmit={salvarMovimento} className="space-y-3">
             {movErro && <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2">{movErro}</div>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade ({p.unidade})</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Quantidade ({m.unidade})</label>
                 <input required type="number" step="0.01" value={movForm.quantidade}
                   onChange={(e) => setMovForm((f) => ({ ...f, quantidade: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -537,18 +529,18 @@ function PecasReposicaoPageInner() {
                   onChange={(e) => setMovForm((f) => ({ ...f, data: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
-              {movForm.tipo === "SAIDA" && (
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Instalada no Ativo (ex: EQ-001)</label>
-                  <select value={movForm.ativo_id} onChange={(e) => setMovForm((f) => ({ ...f, ativo_id: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                    <option value="">Sem ativo / outro uso</option>
-                    {ativos.map((a) => (
-                      <option key={a.id} value={a.id}>{a.codigo_interno}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {movForm.tipo === "SAIDA" ? "Ativo destino (opcional)" : "Ativo de origem (opcional)"}
+                </label>
+                <select value={movForm.ativo_id} onChange={(e) => setMovForm((f) => ({ ...f, ativo_id: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">Sem ativo / uso geral</option>
+                  {ativos.map((a) => (
+                    <option key={a.id} value={a.id}>{a.codigo_interno}</option>
+                  ))}
+                </select>
+              </div>
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Observação (opcional)</label>
                 <input value={movForm.observacao} onChange={(e) => setMovForm((f) => ({ ...f, observacao: e.target.value }))}
@@ -571,10 +563,10 @@ function PecasReposicaoPageInner() {
       })()}
 
       {/* Painel de histórico (side panel) */}
-      {historicoPecaId && (() => {
-        const p = pecas.find((x) => x.id === historicoPecaId)!
+      {historicoMaterialId && (() => {
+        const m = materiais.find((x) => x.id === historicoMaterialId)!
         return (
-          <SidePanel aberto={!!historicoPecaId} onFechar={() => setHistoricoPecaId(null)} titulo={`🕐 Histórico — ${p.nome}`}>
+          <SidePanel aberto={!!historicoMaterialId} onFechar={() => setHistoricoMaterialId(null)} titulo={`🕐 Histórico — ${m.nome}`}>
             {historico.length === 0 ? (
               <p className="text-xs text-gray-400">Nenhuma movimentação registrada.</p>
             ) : (
@@ -585,8 +577,8 @@ function PecasReposicaoPageInner() {
                       <span className={mov.tipo === "ENTRADA" ? "text-green-600 font-medium" : "text-orange-600 font-medium"}>
                         {mov.tipo === "ENTRADA" ? "↓ Entrada" : "↑ Saída"}
                       </span>
-                      {" "}{mov.quantidade} {p.unidade}
-                      {mov.ativo_id ? ` · instalada em ${ativoLabel(mov.ativo_id)}` : ""}
+                      {" "}{mov.quantidade} {m.unidade}
+                      {mov.ativo_id ? ` · ${ativoLabel(mov.ativo_id)}` : ""}
                       {mov.observacao ? ` · ${mov.observacao}` : ""}
                     </span>
                        <span className="text-gray-400 shrink-0 ml-2">{new Date(mov.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
