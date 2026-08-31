@@ -20,7 +20,11 @@ class TransferenciaService:
         ativo = await self.db.get(Ativo, ativo_id)
         if not ativo:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Ativo não encontrado")
-        if ativo.responsavel_id != solicitante.id and solicitante.role != RoleFuncionario.gestor:
+        pode_qualquer_ativo = (
+            solicitante.role == RoleFuncionario.gestor
+            or solicitante.pode_transferir_qualquer_ativo
+        )
+        if ativo.responsavel_id != solicitante.id and not pode_qualquer_ativo:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Você não é o responsável atual por este ativo")
 
         transferencia = Transferencia(
