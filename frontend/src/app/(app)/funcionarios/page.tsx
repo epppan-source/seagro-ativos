@@ -14,6 +14,7 @@ interface Funcionario {
   role: string
   ativo: boolean
   foto_url?: string | null
+  pode_transferir_qualquer_ativo?: boolean
 }
 
 interface FormState {
@@ -25,6 +26,7 @@ interface FormState {
   login: string
   senha_provisoria: string
   role: "funcionario" | "gestor"
+  pode_transferir_qualquer_ativo: boolean
 }
 
 interface EditState {
@@ -35,6 +37,7 @@ interface EditState {
   email: string
   role: "funcionario" | "gestor"
   foto_url: string | null
+  pode_transferir_qualquer_ativo: boolean
 }
 
 const FORM_INICIAL: FormState = {
@@ -46,6 +49,7 @@ const FORM_INICIAL: FormState = {
   login: "",
   senha_provisoria: "",
   role: "funcionario",
+  pode_transferir_qualquer_ativo: false,
 }
 
 export default function FuncionariosPage() {
@@ -107,6 +111,7 @@ export default function FuncionariosPage() {
       email: f.email,
       role: f.role as "funcionario" | "gestor",
       foto_url: f.foto_url || null,
+      pode_transferir_qualquer_ativo: f.pode_transferir_qualquer_ativo || false,
     })
   }
 
@@ -247,6 +252,19 @@ export default function FuncionariosPage() {
               </select>
             </div>
           </div>
+          <label className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={form.pode_transferir_qualquer_ativo}
+              onChange={(e) => setForm((f) => ({ ...f, pode_transferir_qualquer_ativo: e.target.checked }))}
+            />
+            <span>
+              <span className="font-medium">Pode transferir qualquer ativo</span>
+              <br />
+              Use para quem administra o estoque/almoxarifado (ex.: leva e traz equipamento da manutenção) mesmo sem ser o responsável atual pelo ativo no sistema. Sem isso marcado, um Funcionario só consegue transferir os ativos que já estão no nome dele.
+            </span>
+          </label>
           <button disabled={salvando} type="submit"
             className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
             {salvando ? "Salvando..." : "Salvar"}
@@ -301,6 +319,19 @@ export default function FuncionariosPage() {
               </select>
             </div>
           </div>
+          <label className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={editForm.pode_transferir_qualquer_ativo}
+              onChange={(e) => setEditForm((f) => (f ? { ...f, pode_transferir_qualquer_ativo: e.target.checked } : f))}
+            />
+            <span>
+              <span className="font-medium">Pode transferir qualquer ativo</span>
+              <br />
+              Use para quem administra o estoque/almoxarifado (ex.: leva e traz equipamento da manutenção) mesmo sem ser o responsável atual pelo ativo no sistema. Sem isso marcado, um Funcionario só consegue transferir os ativos que já estão no nome dele.
+            </span>
+          </label>
           <div className="flex items-center gap-3 pt-2 border-t">
             <button disabled={salvandoEdicao} type="submit"
               className="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50">
@@ -338,7 +369,14 @@ export default function FuncionariosPage() {
                 </td>
                 <td className="p-3">{f.login}</td>
                 <td className="p-3">{f.cargo}</td>
-                <td className="p-3">{f.role}</td>
+                <td className="p-3">
+                  {f.role}
+                  {f.pode_transferir_qualquer_ativo && (
+                    <span className="ml-2 text-[10px] font-medium bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
+                      + transferências
+                    </span>
+                  )}
+                </td>
                 <td className="p-3 text-right">
                   <button onClick={(e) => { e.stopPropagation(); abrirEdicao(f) }}
                     className="flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
