@@ -23,6 +23,10 @@ class Funcionario(Base):
     senha_hash: Mapped[str] = mapped_column(String(200), nullable=False)
     role: Mapped[RoleFuncionario] = mapped_column(Enum(RoleFuncionario), default=RoleFuncionario.funcionario)
     ativo: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Permissão especial (independente da role) para solicitar transferência de
+    # qualquer ativo, não só dos que estão no nome dele. Pensado para quem
+    # administra o estoque/almoxarifado (ex.: leva e traz equipamento da manutenção).
+    pode_transferir_qualquer_ativo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     deve_trocar_senha: Mapped[bool] = mapped_column(Boolean, default=False)
     reset_token: Mapped[str | None] = mapped_column(String(200), nullable=True)
