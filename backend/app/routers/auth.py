@@ -28,6 +28,7 @@ async def me(usuario: Funcionario = Depends(get_current_user)):
         "id": str(usuario.id), "nome_completo": usuario.nome_completo,
         "email": usuario.email, "role": usuario.role.value,
         "deve_trocar_senha": usuario.deve_trocar_senha,
+        "pode_transferir_qualquer_ativo": usuario.pode_transferir_qualquer_ativo,
     }
 
 
