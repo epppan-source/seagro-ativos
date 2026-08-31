@@ -39,6 +39,7 @@ export default function TransferenciasPage() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
   const [role, setRole] = useState<string | null>(null)
   const [meuId, setMeuId] = useState<string | null>(null)
+  const [podeTransferirQualquerAtivo, setPodeTransferirQualquerAtivo] = useState(false)
 
   const [mostrarForm, setMostrarForm] = useState(false)
   const [modo, setModo] = useState<"qr" | "dropdown">("qr")
@@ -71,7 +72,10 @@ export default function TransferenciasPage() {
 
   useEffect(() => {
     setRole(getRole())
-    api.get("/api/auth/me").then((r) => setMeuId(r.data.id)).catch(() => {})
+    api.get("/api/auth/me").then((r) => {
+      setMeuId(r.data.id)
+      setPodeTransferirQualquerAtivo(!!r.data.pode_transferir_qualquer_ativo)
+    }).catch(() => {})
     carregarLista()
     carregarAtivos()
     carregarFuncionarios()
@@ -141,6 +145,15 @@ export default function TransferenciasPage() {
                 .then((res) => {
                   const encontrado = res.data
                   pararCamera()
+                  if (role !== "gestor" && !podeTransferirQualquerAtivo && encontrado.responsavel_id !== meuId) {
+                    setAtivoId("")
+                    setAtivoDetectado(null)
+                    setScanStatus("error")
+                    setScanMsg(
+                      `${encontrado.codigo_interno} nao esta sob sua responsabilidade no sistema. Apenas o responsavel atual ou um gestor pode solicitar a transferencia deste equipamento.`
+                    )
+                    return
+                  }
                   setAtivoId(encontrado.id)
                   setAtivoDetectado(encontrado)
                   setScanStatus("found")
@@ -161,7 +174,7 @@ export default function TransferenciasPage() {
       }
     }
     animRef.current = requestAnimationFrame(loopScan)
-  }, [ativos])
+  }, [ativos, role, meuId, podeTransferirQualquerAtivo])
 
   function trocarModo(novo: "qr" | "dropdown") {
     pararCamera()
@@ -194,7 +207,9 @@ export default function TransferenciasPage() {
   }
 
   const ativosDisponiveis =
-    role === "gestor" ? ativos : ativos.filter((a) => a.responsavel_id === meuId)
+    role === "gestor" || podeTransferirQualquerAtivo
+      ? ativos
+      : ativos.filter((a) => a.responsavel_id === meuId)
 
   async function decidir(id: string, aprovar: boolean) {
     await api.post(`/api/transferencias/${id}/decisao`, { aprovar })
