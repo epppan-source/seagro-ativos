@@ -4,7 +4,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        seagro: { dark: "#0d3d2e", DEFAULT: "#2E7D32", light: "#4CAF50" },
+        // Paleta oficial SEAGRO (skill seagro-brand, confirmada 13/08/2026)
+        seagro: { dark: "#00402F", DEFAULT: "#007050", light: "#3DA77E" },
+        "seagro-agua": "#1583A6",
+        "seagro-ambar": "#C8862B",
+        "seagro-texto": "#1A1A1A",
+        "seagro-cinza": "#6B7672",
+        "seagro-prata": "#BCBDC1",
+        "seagro-linha": "#E2E5E4",
+        "seagro-fundo": "#F4F6F5",
       },
       fontFamily: {
         sans: ["var(--font-opensans)", "ui-sans-serif", "system-ui"],
