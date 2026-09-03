@@ -43,10 +43,10 @@ interface Painel {
   }
 }
 
-// Cores da identidade visual SEAGRO
-const VERDE = "#2E7D32"
-const VERDE_ESCURO = "#0d3d2e"
-const VERDE_BG = "#E8F5E9"
+// Cores da identidade visual SEAGRO (paleta oficial, skill seagro-brand)
+const VERDE = "#007050"
+const VERDE_ESCURO = "#00402F"
+const VERDE_BG = "#E0EEE9"
 const ALERTA = "#C62828"
 const ALERTA_BG = "#FDECEA"
 
