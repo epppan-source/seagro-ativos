@@ -4,8 +4,8 @@
   "description": "Sistema de Gestão de Ativos - SEAGRO Soluções Ambientais",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0d3d2e",
-  "theme_color": "#2E7D32",
+  "background_color": "#00402F",
+  "theme_color": "#007050",
   "orientation": "portrait-primary",
   "icons": [
     {
