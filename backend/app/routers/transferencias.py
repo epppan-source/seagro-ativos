@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_user, require_role
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/transferencias", tags=["transferencias"])
 
 @router.get("", response_model=list[TransferenciaOut])
 async def listar(db: AsyncSession = Depends(get_db), usuario: Funcionario = Depends(get_current_user)):
-    result = await db.execute(select(Transferencia))
+    result = await db.execute(select(Transferencia).order_by(desc(Transferencia.solicitado_em)))
     return result.scalars().all()
 
 
