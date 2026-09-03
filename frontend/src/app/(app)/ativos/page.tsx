@@ -404,6 +404,53 @@ export default function AtivosPage() {
   )
   const ativosFiltrados = filtroStatus ? ativos.filter((a) => a.status === filtroStatus) : ativos
 
+  // Tabela reutilizável — em telas grandes (lg+) é renderizada duas vezes lado a lado
+  // (metade da lista em cada) pra aproveitar melhor o espaço horizontal.
+  function renderTabelaAtivos(lista: Ativo[]) {
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 text-left text-gray-600">
+            <tr>
+              <th className="p-3">Modelo</th>
+              <th className="p-3">Código</th>
+              <th className="p-3">Status</th>
+              {role === "gestor" && <th className="p-3"></th>}
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((a) => {
+              const cfg = STATUS_CONFIG[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" }
+              return (
+                <tr key={a.id} className="border-t hover:bg-gray-50">
+                  <td className="p-3 font-medium">{a.modelo}</td>
+                  <td className="p-3">{a.codigo_interno}</td>
+                  <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>{cfg.label}</span></td>
+                  {role === "gestor" && (
+                    <td className="p-3 text-right space-x-2 whitespace-nowrap">
+                      <button onClick={() => abrirEdicao(a)}
+                        className="inline-flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
+                        <Pencil size={12} /> Editar
+                      </button>
+                      <button disabled={aposentandoId === a.id} onClick={() => aposentarAtivo(a)}
+                        className="inline-flex items-center gap-1 text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
+                        <Archive size={12} /> {aposentandoId === a.id ? "Aposentando..." : "Aposentar"}
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  const metade = Math.ceil(ativosFiltrados.length / 2)
+  const colunaEsquerda = ativosFiltrados.slice(0, metade)
+  const colunaDireita = ativosFiltrados.slice(metade)
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -729,47 +776,26 @@ export default function AtivosPage() {
       </div>
 
       {/* ── DESKTOP: tabela ── */}
-      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100 text-left text-gray-600">
-            <tr>
-              <th className="p-3">Modelo</th>
-              <th className="p-3">Código</th>
-              <th className="p-3">Status</th>
-              {role === "gestor" && <th className="p-3"></th>}
-            </tr>
-          </thead>
-          <tbody>
-            {ativosFiltrados.map((a) => {
-              const cfg = STATUS_CONFIG[a.status] || { label: a.status, color: "bg-gray-100 text-gray-600" }
-              return (
-                <tr key={a.id} className="border-t hover:bg-gray-50">
-                  <td className="p-3 font-medium">{a.modelo}</td>
-                  <td className="p-3">{a.codigo_interno}</td>
-                  <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs ${cfg.color}`}>{cfg.label}</span></td>
-                  {role === "gestor" && (
-                    <td className="p-3 text-right space-x-2 whitespace-nowrap">
-                      <button onClick={() => abrirEdicao(a)}
-                        className="inline-flex items-center gap-1 text-xs text-blue-700 border border-blue-300 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100">
-                        <Pencil size={12} /> Editar
-                      </button>
-                      <button disabled={aposentandoId === a.id} onClick={() => aposentarAtivo(a)}
-                        className="inline-flex items-center gap-1 text-xs text-red-700 border border-red-300 bg-red-50 px-2 py-1 rounded hover:bg-red-100 disabled:opacity-50">
-                        <Archive size={12} /> {aposentandoId === a.id ? "Aposentando..." : "Aposentar"}
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              )
-            })}
-            {ativosFiltrados.length === 0 && (
-              <tr><td colSpan={4} className="p-6 text-center text-gray-400">
-                {ativos.length === 0 ? "Nenhum ativo cadastrado ainda." : "Nenhum ativo com este status."}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {ativosFiltrados.length === 0 ? (
+        <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+          <div className="p-6 text-center text-gray-400 text-sm">
+            {ativos.length === 0 ? "Nenhum ativo cadastrado ainda." : "Nenhum ativo com este status."}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Tablet (md até lg): uma tabela só, largura cheia */}
+          <div className="hidden md:block lg:hidden">
+            {renderTabelaAtivos(ativosFiltrados)}
+          </div>
+
+          {/* Desktop grande (lg+): duas colunas lado a lado, melhor aproveitamento do espaço */}
+          <div className="hidden lg:grid lg:grid-cols-2 gap-4 items-start">
+            {renderTabelaAtivos(colunaEsquerda)}
+            {renderTabelaAtivos(colunaDireita)}
+          </div>
+        </>
+      )}
     </div>
   )
 }
