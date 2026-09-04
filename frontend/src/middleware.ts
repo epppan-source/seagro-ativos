@@ -24,5 +24,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Além de api/_next/static/_next/image/favicon.ico, exclui qualquer
+  // caminho com extensão de arquivo (.jpg, .png, .json, .js, .css, etc.)
+  // — são assets públicos (logo, ícones do PWA, manifest.json, sw.js) e
+  // não podem exigir login, senão vêm quebrados/redirecionados na tela
+  // de login (usuário ainda sem cookie de sessão).
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 }
