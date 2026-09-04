@@ -39,12 +39,20 @@ async def verificar_estoque_baixo():
     """
     async with AsyncSessionLocal() as db:
         result_materiais = await db.execute(
-            select(Material).where(Material.quantidade_atual <= Material.quantidade_minima, Material.ativo == True)
+            select(Material).where(
+                Material.quantidade_minima > 0,
+                Material.quantidade_atual <= Material.quantidade_minima,
+                Material.ativo == True,
+            )
         )
         materiais = result_materiais.scalars().all()
 
         result_pecas = await db.execute(
-            select(PecaReposicao).where(PecaReposicao.quantidade_atual <= PecaReposicao.quantidade_minima, PecaReposicao.ativo == True)
+            select(PecaReposicao).where(
+                PecaReposicao.quantidade_minima > 0,
+                PecaReposicao.quantidade_atual <= PecaReposicao.quantidade_minima,
+                PecaReposicao.ativo == True,
+            )
         )
         pecas = result_pecas.scalars().all()
 
