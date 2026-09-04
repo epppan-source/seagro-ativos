@@ -31,7 +31,11 @@ class DashboardService:
         )).scalar()
 
         materiais_baixo_estoque = (await self.db.execute(
-            select(func.count(Material.id)).where(Material.quantidade_atual <= Material.quantidade_minima, Material.ativo == True)
+            select(func.count(Material.id)).where(
+                Material.quantidade_minima > 0,
+                Material.quantidade_atual <= Material.quantidade_minima,
+                Material.ativo == True,
+            )
         )).scalar()
 
         return {
@@ -62,7 +66,7 @@ class DashboardService:
             "quantidade_atual": float(m.quantidade_atual),
             "quantidade_minima": float(m.quantidade_minima),
             "unidade": m.unidade,
-            "baixo_estoque": m.quantidade_atual <= m.quantidade_minima,
+            "baixo_estoque": m.quantidade_minima > 0 and m.quantidade_atual <= m.quantidade_minima,
         }
 
     @staticmethod
@@ -74,7 +78,7 @@ class DashboardService:
             "quantidade_atual": float(p.quantidade_atual),
             "quantidade_minima": float(p.quantidade_minima),
             "unidade": p.unidade,
-            "baixo_estoque": p.quantidade_atual <= p.quantidade_minima,
+            "baixo_estoque": p.quantidade_minima > 0 and p.quantidade_atual <= p.quantidade_minima,
         }
 
     async def painel(self, usuario_logado_id=None):
