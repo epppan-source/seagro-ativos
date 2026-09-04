@@ -431,9 +431,10 @@ function PecasReposicaoPageInner() {
       {/* Grid de cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {[...pecas].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p) => {
+          const foraDoControle = p.quantidade_minima === 0
           const pct = Math.min((p.quantidade_atual / (p.quantidade_minima * 2 || 1)) * 100, 100)
-          const semEstoque = p.quantidade_atual === 0
-          const baixo = !semEstoque && p.quantidade_atual <= p.quantidade_minima
+          const semEstoque = !foraDoControle && p.quantidade_atual === 0
+          const baixo = !foraDoControle && !semEstoque && p.quantidade_atual <= p.quantidade_minima
           const barColor = semEstoque ? "bg-red-500" : baixo ? "bg-orange-400" : "bg-green-500"
           const badgeColor = semEstoque
             ? "bg-red-100 text-red-700"
