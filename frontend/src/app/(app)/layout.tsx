@@ -57,13 +57,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen md:flex">
 
       {/* ── DESKTOP: sidebar lateral ── */}
-      <aside className="hidden md:flex w-60 bg-seagro-dark text-white flex-col shrink-0">
+      <aside className="hidden md:flex md:sticky md:top-0 md:h-screen w-60 bg-seagro-dark text-white flex-col shrink-0">
         <div className="p-4 border-b border-white/10 flex justify-center">
           <div className="bg-white rounded-md px-3 py-2">
             <Image src="/logo-seagro.jpg" alt="SEAGRO Soluções Ambientais" width={160} height={37} className="h-7 w-auto" priority />
           </div>
         </div>
-        <nav className="flex-1 p-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
           {navDesktop.map((item) => {
             const active = pathname.startsWith(item.href)
             return (
