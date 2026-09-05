@@ -3,12 +3,17 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from app.models.transferencia import Transferencia, StatusTransferencia
+from app.models.transferencia import Transferencia, StatusTransferencia, DestinoTransferencia
 from app.models.ativo import Ativo, StatusAtivo
 from app.models.funcionario import Funcionario, RoleFuncionario
 from app.services.email_service import EmailService
 from app.services.auditoria_service import registrar_auditoria
 from app.config import settings
+
+NOME_DESTINO = {
+    DestinoTransferencia.DEPOSITO: "Depósito",
+    DestinoTransferencia.MANUTENCAO: "Manutenção",
+}
 
 
 class TransferenciaService:
@@ -16,7 +21,14 @@ class TransferenciaService:
         self.db = db
         self.email_service = EmailService()
 
-    async def solicitar(self, ativo_id: uuid.UUID, solicitante: Funcionario, novo_responsavel_id: uuid.UUID, motivo: str | None) -> Transferencia:
+    async def solicitar(
+        self,
+        ativo_id: uuid.UUID,
+        solicitante: Funcionario,
+        destino: DestinoTransferencia,
+        novo_responsavel_id: uuid.UUID | None,
+        motivo: str | None,
+    ) -> Transferencia:
         ativo = await self.db.get(Ativo, ativo_id)
         if not ativo:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Ativo não encontrado")
@@ -27,18 +39,25 @@ class TransferenciaService:
         if ativo.responsavel_id != solicitante.id and not pode_qualquer_ativo:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Você não é o responsável atual por este ativo")
 
+        if destino == DestinoTransferencia.FUNCIONARIO and not novo_responsavel_id:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Selecione o novo responsável.")
+
         transferencia = Transferencia(
             ativo_id=ativo_id,
             solicitante_id=solicitante.id,
             responsavel_atual_id=ativo.responsavel_id or solicitante.id,
-            novo_responsavel_id=novo_responsavel_id,
+            destino=destino,
+            novo_responsavel_id=novo_responsavel_id if destino == DestinoTransferencia.FUNCIONARIO else None,
             motivo_solicitacao=motivo,
         )
         self.db.add(transferencia)
         await self.db.commit()
 
-        novo_responsavel_obj = await self.db.get(Funcionario, novo_responsavel_id)
-        novo_responsavel_nome = novo_responsavel_obj.nome_completo if novo_responsavel_obj else "—"
+        if destino == DestinoTransferencia.FUNCIONARIO:
+            novo_responsavel_obj = await self.db.get(Funcionario, novo_responsavel_id)
+            novo_responsavel_nome = novo_responsavel_obj.nome_completo if novo_responsavel_obj else "—"
+        else:
+            novo_responsavel_nome = NOME_DESTINO[destino]
 
         result = await self.db.execute(select(Funcionario).where(Funcionario.role == RoleFuncionario.gestor))
         for gestor in result.scalars().all():
@@ -58,8 +77,10 @@ class TransferenciaService:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Esta transferência já foi processada")
 
         ativo = await self.db.get(Ativo, transferencia.ativo_id)
-        novo_responsavel = await self.db.get(Funcionario, transferencia.novo_responsavel_id)
         solicitante = await self.db.get(Funcionario, transferencia.solicitante_id)
+        novo_responsavel = None
+        if transferencia.destino == DestinoTransferencia.FUNCIONARIO:
+            novo_responsavel = await self.db.get(Funcionario, transferencia.novo_responsavel_id)
 
         transferencia.aprovador_id = aprovador.id
         transferencia.aprovado_rejeitado_em = datetime.utcnow()
@@ -72,22 +93,35 @@ class TransferenciaService:
             responsavel_anterior_nome = responsavel_anterior_obj.nome_completo if responsavel_anterior_obj else "Depósito"
             data_hora = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y às %H:%M")
 
-            ativo.responsavel_id = novo_responsavel.id
-            ativo.status = StatusAtivo.NA_MAO_FUNCIONARIO
+            if transferencia.destino == DestinoTransferencia.FUNCIONARIO:
+                ativo.responsavel_id = novo_responsavel.id
+                ativo.status = StatusAtivo.NA_MAO_FUNCIONARIO
+                novo_responsavel_nome = novo_responsavel.nome_completo
+            elif transferencia.destino == DestinoTransferencia.DEPOSITO:
+                ativo.responsavel_id = None
+                ativo.status = StatusAtivo.NO_DEPOSITO
+                novo_responsavel_nome = "Depósito"
+            else:  # MANUTENCAO
+                ativo.responsavel_id = None
+                ativo.status = StatusAtivo.EM_MANUTENCAO
+                novo_responsavel_nome = "Manutenção"
 
             await self.email_service.enviar_transferencia_aprovada(
                 solicitante.email, solicitante.nome_completo, ativo.codigo_interno,
-                ativo.modelo, novo_responsavel.nome_completo, data_hora,
+                ativo.modelo, novo_responsavel_nome, data_hora,
             )
-            await self.email_service.enviar_transferencia_novo_responsavel(
-                novo_responsavel.email, novo_responsavel.nome_completo,
-                ativo.codigo_interno, ativo.modelo, responsavel_anterior_nome, data_hora,
-            )
+            # Só existe alguém pra avisar "o ativo chegou pra você" quando o
+            # destino é uma pessoa de verdade.
+            if novo_responsavel:
+                await self.email_service.enviar_transferencia_novo_responsavel(
+                    novo_responsavel.email, novo_responsavel.nome_completo,
+                    ativo.codigo_interno, ativo.modelo, responsavel_anterior_nome, data_hora,
+                )
             result_gestores = await self.db.execute(select(Funcionario).where(Funcionario.role == RoleFuncionario.gestor))
             for gestor in result_gestores.scalars().all():
                 await self.email_service.enviar_transferencia_aprovada_gestor(
                     gestor.email, gestor.nome_completo, ativo.codigo_interno,
-                    ativo.modelo, responsavel_anterior_nome, novo_responsavel.nome_completo, data_hora,
+                    ativo.modelo, responsavel_anterior_nome, novo_responsavel_nome, data_hora,
                 )
         else:
             transferencia.status = StatusTransferencia.REJEITADA
