@@ -11,6 +11,16 @@ class StatusTransferencia(str, PyEnum):
     REJEITADA = "REJEITADA"
     CANCELADA = "CANCELADA"
 
+# Pra onde o ativo está indo nessa transferência. FUNCIONARIO é o caso de
+# sempre (passa a mão pra outra pessoa). DEPOSITO e MANUTENCAO representam o
+# equipamento voltando pro almoxarifado ou indo pra manutenção — nesses dois
+# casos não existe uma "pessoa" responsável, então novo_responsavel_id fica
+# vazio e quem manda de verdade pra onde o ativo foi é o campo Ativo.status.
+class DestinoTransferencia(str, PyEnum):
+    FUNCIONARIO = "FUNCIONARIO"
+    DEPOSITO = "DEPOSITO"
+    MANUTENCAO = "MANUTENCAO"
+
 class Transferencia(Base):
     __tablename__ = "transferencias"
 
@@ -18,7 +28,14 @@ class Transferencia(Base):
     ativo_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ativos.id"), nullable=False)
     solicitante_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("funcionarios.id"), nullable=False)
     responsavel_atual_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("funcionarios.id"), nullable=False)
-    novo_responsavel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("funcionarios.id"), nullable=False)
+    destino: Mapped[DestinoTransferencia] = mapped_column(
+        Enum(DestinoTransferencia, name="destinotransferencia"),
+        default=DestinoTransferencia.FUNCIONARIO,
+        server_default="FUNCIONARIO",
+    )
+    # Só é obrigatório quando destino == FUNCIONARIO. Pra Depósito/Manutenção
+    # fica None de propósito.
+    novo_responsavel_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("funcionarios.id"), nullable=True)
     status: Mapped[StatusTransferencia] = mapped_column(Enum(StatusTransferencia), default=StatusTransferencia.PENDENTE)
     motivo_solicitacao: Mapped[str | None] = mapped_column(Text)
     motivo_rejeicao: Mapped[str | None] = mapped_column(Text)
@@ -33,5 +50,5 @@ class Transferencia(Base):
         "Funcionario", foreign_keys=[solicitante_id], back_populates="transferencias_solicitadas"
     )
     responsavel_atual: Mapped["Funcionario"] = relationship("Funcionario", foreign_keys=[responsavel_atual_id])
-    novo_responsavel: Mapped["Funcionario"] = relationship("Funcionario", foreign_keys=[novo_responsavel_id])
+    novo_responsavel: Mapped["Funcionario | None"] = relationship("Funcionario", foreign_keys=[novo_responsavel_id])
     aprovador: Mapped["Funcionario | None"] = relationship("Funcionario", foreign_keys=[aprovador_id])
