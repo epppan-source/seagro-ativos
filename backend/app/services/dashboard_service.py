@@ -89,6 +89,9 @@ class DashboardService:
         projeto_dashboard_cards_por_responsavel.md.
         O proprietário (usuário logado) não recebe card de funcionário —
         decisão Pancini 2026-06-27.
+        Contas de automação (cargo == "Automação", ex.: automacao.estoque)
+        também não recebem card no Quadro de Funcionários — decisão
+        Pancini 2026-09-20. Continuam normalmente na tela de Funcionários.
         """
         deposito_ativos = (await self.db.execute(
             select(Ativo).where(Ativo.ativo == True, Ativo.status == StatusAtivo.NO_DEPOSITO)
@@ -112,7 +115,10 @@ class DashboardService:
             select(PecaReposicao).where(PecaReposicao.ativo == True, PecaReposicao.responsavel_id.is_(None)).order_by(PecaReposicao.nome)
         )).scalars().all()
 
-        funcionarios_query = select(Funcionario).where(Funcionario.ativo == True)
+        funcionarios_query = select(Funcionario).where(
+            Funcionario.ativo == True,
+            Funcionario.cargo != "Automação",
+        )
         if usuario_logado_id is not None:
             funcionarios_query = funcionarios_query.where(Funcionario.id != usuario_logado_id)
         funcionarios = (await self.db.execute(
