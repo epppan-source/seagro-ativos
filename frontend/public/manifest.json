@@ -1,6 +1,6 @@
 {
-  "name": "SEAGRO Ativos",
-  "short_name": "SEAGRO",
+  "name": "Ativos SEAGRO",
+  "short_name": "ATIVOS",
   "description": "Sistema de Gestão de Ativos - SEAGRO Soluções Ambientais",
   "start_url": "/dashboard",
   "display": "standalone",
